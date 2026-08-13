@@ -34,59 +34,18 @@
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif;
     -webkit-font-smoothing:antialiased}
-  html,body{height:100%}
-  body{display:flex;flex-direction:column;overflow:hidden}
-  header{flex:0 0 auto;display:flex;align-items:baseline;gap:18px;
-    padding:11px 20px;border-bottom:1px solid var(--line)}
-  h1{margin:0;font-size:17px;font-weight:600;letter-spacing:.2px;flex:0 0 auto}
-  header p{margin:0;font-size:12.5px;color:var(--muted);max-width:70ch;line-height:1.45;
-    flex:1 1 auto;min-width:0}
-  .headerbar{display:flex;gap:7px;flex:0 0 auto;margin-left:auto}
-  .hidden-ctl{display:none}
-  .wrap{display:flex;flex:1 1 auto;min-height:0}
-  .stage{flex:1 1 auto;position:relative;min-width:0;overflow:hidden;cursor:grab;height:100%}
+  header{padding:16px 24px 9px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:19px;font-weight:600}
+  header p{margin:5px 0 0;font-size:13px;color:var(--muted);max-width:86ch;line-height:1.5}
+  .wrap{display:flex;min-height:0}
+  .stage{flex:1 1 auto;position:relative;min-width:0;overflow:hidden;cursor:grab;
+    height:calc(100vh - 208px);min-height:400px}
   .stage.drag{cursor:grabbing}
   svg#sky{position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none}
   aside{flex:0 0 336px;border-left:1px solid var(--line);background:var(--panel);
-    padding:16px 18px 24px;overflow:auto;scrollbar-width:thin}
-  aside::-webkit-scrollbar{width:8px}
-  aside::-webkit-scrollbar-thumb{background:#242c4c;border-radius:4px}
-  aside::-webkit-scrollbar-track{background:transparent}
-  /* ---- floating chrome over the sky: the model gets the whole viewport ---- */
-  .dock,.tools{position:absolute;z-index:4;display:flex;align-items:center;font-size:13px;
-    background:rgba(9,11,24,.82);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
-    border:1px solid var(--line);border-radius:13px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
-  .dock{left:14px;bottom:14px;max-width:calc(100% - 196px);flex-wrap:wrap;gap:7px 10px;padding:8px 11px}
-  .dock input[type=range]{width:104px}
-  .dock .date{margin:0}
-  button.datebtn{font-variant-numeric:tabular-nums;padding:6px 12px}
-  button.datebtn b{font-weight:600;font-size:14px}
-  .dwrap{position:relative}
-  .dpop{position:absolute;bottom:calc(100% + 10px);left:0;width:236px;display:none;
-    flex-direction:column;gap:9px;padding:11px;border:1px solid var(--line);border-radius:12px;
-    background:rgba(9,11,24,.95);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
-    box-shadow:0 12px 34px rgba(0,0,0,.55)}
-  .dpop.open{display:flex}
-  .dpop label.ctl{flex-direction:column;align-items:stretch;gap:4px;font-size:10.5px;
-    text-transform:uppercase;letter-spacing:1px}
-  .dpop select,.dpop input[type=date]{width:100%}
-  .tools{right:14px;top:14px;width:160px;flex-direction:column;align-items:stretch;gap:6px;padding:8px}
-  .tools button{text-align:left}
-  .tools label.ctl{flex-direction:column;align-items:stretch;gap:3px;font-size:10.5px;
-    text-transform:uppercase;letter-spacing:1px;padding:1px 3px 3px}
-  .tools input[type=range]{width:100%}
-  .sep{width:1px;align-self:stretch;min-height:20px;background:var(--line);margin:0 1px}
-  .lwrap{position:relative}
-  .layers{position:absolute;top:0;right:calc(100% + 8px);width:152px;display:none;
-    flex-direction:column;gap:5px;padding:8px;border:1px solid var(--line);border-radius:12px;
-    background:rgba(9,11,24,.93);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
-    box-shadow:0 12px 34px rgba(0,0,0,.55)}
-  .layers.open{display:flex}
-  .layers button{display:flex;align-items:center;gap:9px;text-align:left}
-  .layers button::before{content:"";width:8px;height:8px;border-radius:50%;flex:0 0 auto;
-    border:1px solid #4a5480}
-  .layers button.on{color:var(--ink);border-color:var(--line)}
-  .layers button.on::before{background:var(--accent);border-color:var(--accent)}
+    padding:16px 18px 24px;overflow:auto}
+  .controls{display:flex;flex-wrap:wrap;gap:12px 14px;align-items:center;
+    padding:9px 24px;border-bottom:1px solid var(--line);background:#080a15;font-size:13px}
   button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);
     border-radius:7px;padding:6px 11px;font-size:13px;cursor:pointer;font-family:inherit}
   button:hover{border-color:#3c4470}
@@ -129,35 +88,11 @@
     border-radius:10px;padding:11px 13px;margin-bottom:14px}
   .moonrow div{font-size:12.5px;line-height:1.6;color:#c3cae0}
   .moonrow b{color:var(--ink)}
-  .tdate{display:flex;align-items:center;gap:6px;margin:0 0 13px}
-  .tdate input[type=date]{flex:1 1 auto;min-width:0;text-align:center;
-    font-variant-numeric:tabular-nums;font-size:14px;padding:7px 8px}
-  .tdate button{padding:7px 11px;line-height:1}
-  .tdate button.step{font-size:15px}
-  .tdate button.on{border-color:var(--accent);color:var(--accent)}
   .tonight{font-size:12.5px;line-height:1.65;color:#c3cae0;margin:0 0 6px}
   .tonight b{color:var(--ink)}
-  .calnav{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:6px 0 8px}
+  .calnav{display:flex;align-items:center;justify-content:space-between;margin:6px 0 8px}
   .calnav b{font-size:14px}
   .calnav button{padding:3px 11px;font-size:15px;line-height:1}
-  .cwrap{position:relative;flex:1 1 auto;display:flex;justify-content:center}
-  button.caltitle{font-size:14px;font-weight:600;padding:5px 12px;color:var(--ink);
-    background:transparent;border-color:transparent;display:flex;align-items:center;gap:7px}
-  button.caltitle:hover{border-color:#3c4470;background:var(--panel2)}
-  button.caltitle span{font-size:10px;color:var(--muted)}
-  .calpick{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);
-    z-index:6;width:212px;display:none;flex-direction:column;gap:8px;padding:10px;
-    border:1px solid var(--line);border-radius:12px;background:#111530;
-    box-shadow:0 14px 34px rgba(0,0,0,.6)}
-  .calpick.open{display:flex}
-  .yrow{display:flex;align-items:center;justify-content:space-between}
-  .yrow b{font-size:14px;font-variant-numeric:tabular-nums}
-  .mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
-  .mgrid button{padding:6px 2px;font-size:11.5px}
-  .mgrid button.on{border-color:var(--accent);color:var(--accent);background:#131a33}
-  .calpick .cnow{font-size:11.5px;padding:6px}
-  .cal.at{border-color:#ffd08a}
-  .cal.at .dn{color:#ffd08a}
   .calhead,.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
   .calhead span{text-align:center;font-size:10px;color:var(--muted);padding-bottom:3px}
   .cal{background:#0a0e1e;border:1px solid #171c33;border-radius:6px;padding:3px 0 2px;
@@ -173,9 +108,10 @@
   .filters{display:flex;flex-wrap:wrap;gap:5px;margin:2px 0 10px}
   .filters button{padding:5px 10px;font-size:12px;border-radius:14px}
   .filters button.on{border-color:var(--accent);color:var(--accent);background:#131a33}
-  .ecllist{max-height:52vh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;
-    padding:8px 6px 2px 0;margin-bottom:12px;
-    border-top:1px solid #171c33;border-bottom:1px solid #171c33}
+  .ecllist{max-height:56vh;overflow-y:auto;overscroll-behavior:contain;
+    padding-right:4px;margin-bottom:12px;
+    -webkit-mask-image:linear-gradient(#000 calc(100% - 18px),transparent);
+    mask-image:linear-gradient(#000 calc(100% - 18px),transparent)}
   .ecllist::-webkit-scrollbar{width:7px}
   .ecllist::-webkit-scrollbar-thumb{background:#2a3358;border-radius:4px}
   .ecl{border:1px solid #1d2340;border-radius:9px;padding:9px 11px;margin-bottom:8px;
@@ -220,12 +156,12 @@
   .swatch{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;vertical-align:1px}
   .tip{position:absolute;pointer-events:none;background:#111530;border:1px solid #333a63;
     border-radius:7px;padding:6px 9px;font-size:12px;opacity:0;transition:opacity .12s;white-space:nowrap}
-  footer{padding:14px 0 10px;margin-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.6}
+  footer{padding:14px 24px 28px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.6}
   footer b{color:#b9c0d8;font-weight:600}
   /* ---- tab bar ---- */
   .tabs{display:flex;gap:5px;margin:-4px 0 14px;position:sticky;top:0;background:var(--panel);
     padding:6px 0 8px;z-index:5;border-bottom:1px solid var(--line)}
-  .tabs button{flex:1 1 0;padding:8px 2px;font-size:11.5px;border-radius:8px;min-width:0;
+  .tabs button{flex:1 1 0;padding:8px 4px;font-size:12px;border-radius:8px;min-width:0;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tabs button.on{border-color:var(--accent);color:var(--accent);background:#131a33}
   #tabpick{margin-bottom:12px}
@@ -235,9 +171,7 @@
 
   /* ---- field mode: the panel only, for use outdoors ---- */
   body.field header p,body.field .controls,body.field .stage,body.field footer{display:none}
-  body.field aside{flex:1 1 auto;border-left:0;width:100%;padding:12px 14px 40px;
-    max-width:640px;margin:0 auto}
-  body.field .headerbar{display:none}
+  body.field aside{flex:1 1 auto;border-left:0;width:100%;padding:12px 14px 40px}
   body.field header{padding:10px 14px 8px;display:flex;align-items:center;justify-content:space-between}
   body.field .tabs button{font-size:13px;padding:11px 4px}
   body.field .fieldbar{display:flex}
@@ -248,15 +182,11 @@
   body.night{filter:url(#redonly) brightness(.85)}
 
   @media (max-width:900px){
-    body{overflow:auto;height:auto;min-height:100%}
     .wrap{flex-direction:column}
-    .stage{flex:0 0 auto;height:62vh;min-height:340px}
-    aside{flex:1 1 auto;border-left:0;border-top:1px solid var(--line);width:100%;overflow:visible}
-    header{padding:10px 14px;flex-wrap:wrap;gap:8px 12px}
-    header p{order:3;flex-basis:100%}
-    .headerbar{margin-left:auto}
-    .dock{left:8px;right:8px;bottom:8px;max-width:none}
-    .tools{right:8px;top:8px}
+    aside{flex:1 1 auto;border-left:0;border-top:1px solid var(--line);width:100%}
+    header{padding:12px 14px 8px}
+    header p{font-size:12.5px}
+    .controls{padding:8px 12px;gap:8px}
     button,select,input[type=date]{padding:9px 12px;font-size:14px}
     .tabs button{font-size:12.5px;padding:10px 3px}
     svg#sky{max-height:78vh}
@@ -264,7 +194,7 @@
     aside p.note,.tonight,.sky{font-size:14px}
     .legend,.where{font-size:13px}
     .cal{min-height:58px}
-    footer{font-size:12.5px;padding:12px 0 20px}
+    footer{font-size:12.5px;padding:12px 14px 30px}
   }
 </style>
 </head>
@@ -283,77 +213,61 @@
     <button id="fieldhemi">N</button>
     <button id="fieldexit">Full view</button>
   </div>
-  <p>Positions computed from JPL's Keplerian elements, so the planets are where they actually are on the date shown. Tilt the ecliptic to see the inclinations, scroll to zoom, drag to pan. Click any body for its numbers.</p>
-  <div class="headerbar">
-    <button id="hemi">View: northern</button>
-    <button id="field">Field mode</button>
-    <button id="night">Night vision</button>
-  </div>
+  <p>Positions computed from JPL's Keplerian elements, so the planets are where they actually are on the date shown.
+  Tilt the ecliptic to see the inclinations, scroll to zoom, drag to pan. Click any body for its numbers.</p>
 </header>
 
-<div class="hidden-ctl">
+<div class="controls">
+  <button id="play">Pause</button>
+  <label class="ctl">Speed <input id="speed" type="range" min="0" max="100" value="42"></label>
+  <span class="date"><b id="datetxt">—</b></span>
+  <button id="now">Today</button>
+  <label class="ctl">Tilt <input id="tilt" type="range" min="0" max="72" value="22"></label>
+  <button id="scale">Scale: compressed</button>
+  <button id="zoomout">Reset view</button>
+  <button id="tglLabels" class="on">Labels</button>
+  <button id="tglBelts" class="on">Belts</button>
+  <button id="tglMoons" class="on">Moons</button>
+  <button id="tglTrails" class="on">Trails</button>
+  <button id="tglComets" class="on">Comets</button>
+  <button id="tglOrbits" class="on">Orbits</button>
+  <button id="tglZodiac" class="on">Zodiac</button>
+  <button id="deselect">Deselect</button>
+</div>
+<div class="controls">
+  <label class="ctl">Date <input type="date" id="datepick"></label>
+  <label class="ctl">Jump to
+    <select id="events">
+      <option value="">an event…</option>
+      <option value="1846-09-23">Neptune discovered (1846)</option>
+      <option value="1930-02-18">Pluto discovered (1930)</option>
+      <option value="1986-02-09">Halley at perihelion (1986)</option>
+      <option value="1989-08-25">Voyager 2 at Neptune (1989)</option>
+      <option value="1989-09-05">Pluto at perihelion (1989)</option>
+      <option value="2003-08-27">Mars at its closest (2003)</option>
+      <option value="2015-07-14">New Horizons at Pluto (2015)</option>
+      <option value="2020-12-21">Great conjunction (2020)</option>
+      <option value="2040-10-31">Next great conjunction (2040)</option>
+      <option value="2061-07-28">Halley returns (2061)</option>
+    </select>
+  </label>
+  <button id="reverse">Direction: forward</button>
+  <button id="follow">Follow selected</button>
+  <label class="ctl">Planet <select id="planetpick"><option value="">look up…</option></select></label>
+  <label class="ctl">Constellation <select id="conpick"><option value="">look up…</option></select></label>
+  <button id="hemi">View: northern</button>
   <button id="moonbtn">Moon calendar</button>
   <button id="eclbtn">Eclipses</button>
-  <select id="planetpick"><option value="">look up…</option></select>
-  <select id="conpick"><option value="">look up…</option></select>
+  <button id="tglSight" class="on">Sight line</button>
+  <button id="field">Field mode</button>
+  <button id="night">Night vision</button>
+  <span class="hint">Space pauses &middot; ← → step a day &middot; Esc deselects &middot; click empty sky to deselect</span>
 </div>
 
 <div class="wrap">
   <div class="stage" id="stage">
     <svg id="sky" viewBox="0 0 1000 1000" role="img" aria-label="Three-dimensional model of the solar system"></svg>
     <div class="tip" id="tip"></div>
-
-    <div class="dock">
-      <button id="play">Pause</button>
-      <button id="stepback" title="Back one day" aria-label="Back one day">‹</button>
-      <button id="stepfwd" title="Forward one day" aria-label="Forward one day">›</button>
-      <div class="dwrap">
-        <button class="datebtn" id="datebtn" title="Set a date"><b id="datetxt">—</b></button>
-        <div class="dpop" id="datepop">
-          <label class="ctl">Date <input type="date" id="datepick"></label>
-          <label class="ctl">Jump to
-            <select id="events">
-              <option value="">an event…</option>
-              <option value="1846-09-23">Neptune discovered (1846)</option>
-              <option value="1930-02-18">Pluto discovered (1930)</option>
-              <option value="1986-02-09">Halley at perihelion (1986)</option>
-              <option value="1989-08-25">Voyager 2 at Neptune (1989)</option>
-              <option value="1989-09-05">Pluto at perihelion (1989)</option>
-              <option value="2003-08-27">Mars at its closest (2003)</option>
-              <option value="2015-07-14">New Horizons at Pluto (2015)</option>
-              <option value="2020-12-21">Great conjunction (2020)</option>
-              <option value="2040-10-31">Next great conjunction (2040)</option>
-              <option value="2061-07-28">Halley returns (2061)</option>
-            </select>
-          </label>
-        </div>
-      </div>
-      <button id="now">Today</button>
-      <span class="sep"></span>
-      <label class="ctl">Speed <input id="speed" type="range" min="0" max="100" value="55"></label>
-      <button id="reverse">Direction: forward</button>
-    </div>
-
-    <div class="tools">
-      <label class="ctl">Tilt <input id="tilt" type="range" min="0" max="72" value="22"></label>
-      <div class="lwrap">
-        <button id="layersbtn">Layers ▾</button>
-        <div class="layers" id="layerpop">
-          <button id="tglLabels" class="on">Labels</button>
-          <button id="tglOrbits" class="on">Orbits</button>
-          <button id="tglTrails" class="on">Trails</button>
-          <button id="tglMoons" class="on">Moons</button>
-          <button id="tglBelts" class="on">Belts</button>
-          <button id="tglComets" class="on">Comets</button>
-          <button id="tglZodiac" class="on">Zodiac</button>
-          <button id="tglSight" class="on">Sight line</button>
-        </div>
-      </div>
-      <button id="scale">Scale: compressed</button>
-      <button id="zoomout">Reset view</button>
-      <button id="follow">Follow selected</button>
-      <button id="deselect">Deselect</button>
-    </div>
   </div>
   <aside id="side">
     <nav class="tabs" id="tabs">
@@ -365,10 +279,10 @@
     </nav>
     <div id="tabpick"></div>
     <div id="panel"></div>
-    <footer id="foot"></footer>
   </aside>
 </div>
 
+<footer id="foot"></footer>
 
 <script>
 (function(){
@@ -522,15 +436,6 @@ const L3=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
 const J2000=Date.UTC(2000,0,1,12,0,0);
 const nowDays=()=>(Date.now()-J2000)/86400000;
 let T=nowDays();                                   // days since J2000
-/* the date the read-out panels describe. It follows the orrery only when the
-   user sets a date deliberately, so Tonight does not scroll past while the
-   model animates. */
-let refT=nowDays();
-function markDate(){refT=T;
-  if(curTab==="tonight") tonight();}
-const isoDay=days=>{const d=new Date(J2000+days*86400000);
-  return d.getUTCFullYear()+"-"+("0"+(d.getUTCMonth()+1)).slice(-2)+"-"+
-    ("0"+d.getUTCDate()).slice(-2);};
 function fmtDate(days){
   const d=new Date(J2000+days*86400000);
   return ("0"+d.getUTCDate()).slice(-2)+"/"+("0"+(d.getUTCMonth()+1)).slice(-2)+"/"+d.getUTCFullYear();
@@ -1619,14 +1524,10 @@ function zoomAt(sx,sy,factor){
   applyView();
 }
 window.addEventListener("resize",()=>applyView());
-stage.addEventListener("wheel",e=>{
-  if(e.target.closest(".dock,.tools")) return;
-  e.preventDefault();
+stage.addEventListener("wheel",e=>{e.preventDefault();
   zoomAt(e.clientX,e.clientY,Math.exp(-e.deltaY*0.0016));},{passive:false});
 let drag=null;
-stage.addEventListener("pointerdown",e=>{
-  if(e.target.closest(".dock,.tools")) return;
-  drag={x:e.clientX,y:e.clientY,moved:0};
+stage.addEventListener("pointerdown",e=>{drag={x:e.clientX,y:e.clientY,moved:0};
   stage.classList.add("drag"); stage.setPointerCapture(e.pointerId);});
 stage.addEventListener("pointermove",e=>{
   if(!drag) return;
@@ -1814,13 +1715,13 @@ function select(o){
 function tonight(){
   following=false;
   document.getElementById("follow").classList.remove("on");
-  const m=moon(refT), nw=nextPhase(0), nf=nextPhase(180);
-  const e=vec(BODIES[2],refT);
+  const m=moon(T), nw=nextPhase(0), nf=nextPhase(180);
+  const e=vec(BODIES[2],T);
   const rows=[];
   ALL.forEach(b=>{
     if(b.n==="Earth"||b.t==="comet") return;
-    const p=vec(b,refT), dx=p.x-e.x,dy=p.y-e.y,dz=p.z-e.z,D=Math.hypot(dx,dy,dz);
-    const el2=elong(b,refT), lam=Math.atan2(dy,dx)*R2D;
+    const p=vec(b,T), dx=p.x-e.x,dy=p.y-e.y,dz=p.z-e.z,D=Math.hypot(dx,dy,dz);
+    const el2=elong(b,T), lam=Math.atan2(dy,dx)*R2D;
     const lamS=Math.atan2(-e.y,-e.x)*R2D;
     const east=((lam-lamS)%360+360)%360<180;
     rows.push({n:b.n,t:b.t,el:el2.a,con:constellation(lam),east:east,
@@ -1830,13 +1731,7 @@ function tonight(){
   const naked=rows.filter(r=>r.t==="planet");
   const good=naked.filter(r=>r.vis);
   panel.innerHTML=
-    "<div class='kind' style='margin-top:4px'>Tonight</div>"+
-    "<div class='tdate'>"+
-      "<button class='step' id='tprev' title='Previous day' aria-label='Previous day'>‹</button>"+
-      "<input type='date' id='tdatepick' value='"+isoDay(refT)+"'>"+
-      "<button class='step' id='tnext' title='Next day' aria-label='Next day'>›</button>"+
-      "<button id='ttoday'"+(Math.abs(refT-nowDays())<0.5?" class='on'":"")+">Today</button>"+
-    "</div>"+
+    "<div class='kind' style='margin-top:4px'>Tonight — <span id='ovdate'>"+fmtDate(T)+"</span></div>"+
     "<div class='moonrow'><span id='moonpic'></span><div><b>"+phaseName(m.el)+"</b><br>"+
       Math.round(m.lit*100)+"% lit &middot; "+m.age.toFixed(1)+" days old<br>"+
       "in "+constellation(m.lam)+" &middot; "+Math.round(m.dist).toLocaleString("en-GB")+" km"+
@@ -1858,29 +1753,15 @@ function tonight(){
     "them 30° wide.</p>";
   const holder=document.getElementById("moonpic");
   if(holder) holder.appendChild(drawPhase(m.el,64));
-  /* the date is adjustable here too — field mode hides the dock entirely */
-  const setBoth=t=>{T=t; refT=t; relayout();
-    running=false; document.getElementById("play").textContent="Play";
-    syncPicker(); tonight();};
-  document.getElementById("tprev").onclick=()=>setBoth(refT-1);
-  document.getElementById("tnext").onclick=()=>setBoth(refT+1);
-  document.getElementById("ttoday").onclick=()=>setBoth(nowDays());
-  document.getElementById("tdatepick").onchange=e=>{
-    const p=e.target.value.split("-");
-    if(p.length===3) setBoth((Date.UTC(+p[0],+p[1]-1,+p[2],12,0,0)-J2000)/86400000);};
 }
 
 /* ---------- moon phase calendar ------------------------------------ */
-let calMonth=null, calPickYear=null;
-const realToday=()=>{const d=new Date();
-  return {y:d.getFullYear(),m:d.getMonth(),d:d.getDate()};};
+let calMonth=null;
 function moonPanel(shift){
   selected=null; portrait=null; portraitBody=null;
   nodes.forEach(nd=>nd.halo.style.opacity=0);
   const base=new Date(J2000+T*86400000);
-  /* opens on the real current month, not wherever the orrery has drifted to */
-  if(calMonth===null||shift===undefined){const rt=realToday();
-    calMonth=new Date(Date.UTC(rt.y,rt.m,1));}
+  if(calMonth===null||shift===undefined) calMonth=new Date(Date.UTC(base.getUTCFullYear(),base.getUTCMonth(),1));
   if(shift) calMonth=new Date(Date.UTC(calMonth.getUTCFullYear(),calMonth.getUTCMonth()+shift,1));
   const y=calMonth.getUTCFullYear(), mo=calMonth.getUTCMonth();
   const first=new Date(Date.UTC(y,mo,1)), days=new Date(Date.UTC(y,mo+1,0)).getUTCDate();
@@ -1908,40 +1789,27 @@ function moonPanel(shift){
     }
   });
   const nowD=new Date(J2000+T*86400000);
-  const rt=realToday();
   let cells="";
   for(let i=0;i<lead;i++) cells+="<div class='cal empty'></div>";
   for(let d=1;d<=days;d++){
     const q=moon((Date.UTC(y,mo,d,12,0,0)-J2000)/86400000), tag=ev[d];
-    const today=rt.y===y&&rt.m===mo&&rt.d===d;
-    const at=nowD.getUTCFullYear()===y&&nowD.getUTCMonth()===mo&&nowD.getUTCDate()===d;
-    cells+="<div class='cal"+(tag?" key":"")+(today?" today":"")+(at&&!today?" at":"")+
-      "' data-d='"+d+"'>"+
+    const today=nowD.getUTCFullYear()===y&&nowD.getUTCMonth()===mo&&nowD.getUTCDate()===d;
+    cells+="<div class='cal"+(tag?" key":"")+(today?" today":"")+"' data-d='"+d+"'>"+
       "<span class='dn'>"+d+"</span><span class='ph' data-el='"+q.el.toFixed(2)+"'></span>"+
       (tag?"<span class='tg'>"+tag+"</span>":"")+"</div>";
   }
   marks.sort((a,b)=>a.d-b.d);
   panel.innerHTML=
     "<div class='kind' style='margin-top:4px'>Moon phase calendar</div>"+
-    "<div class='calnav'><button id='calprev' title='Previous month'>‹</button>"+
-      "<div class='cwrap'><button class='caltitle' id='caltitle'>"+MON[mo]+" "+y+
-        "<span>▾</span></button>"+
-        "<div class='calpick' id='calpick'>"+
-          "<div class='yrow'><button id='calyprev'>‹</button><b id='calyr'></b>"+
-            "<button id='calynext'>›</button></div>"+
-          "<div class='mgrid'>"+MON.map((n,i)=>
-            "<button data-m='"+i+"'>"+n.slice(0,3)+"</button>").join("")+"</div>"+
-          "<button class='cnow' id='calnow'>Back to this month</button>"+
-        "</div></div>"+
-      "<button id='calnext' title='Next month'>›</button></div>"+
-    "<div class='calhead'><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span>"+
-      "<span>Sa</span><span>Su</span></div>"+
+    "<div class='calnav'><button id='calprev'>‹</button><b>"+MON[mo]+" "+y+"</b>"+
+      "<button id='calnext'>›</button></div>"+
+    "<div class='calhead'><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span>"+
+      "<span>S</span><span>S</span></div>"+
     "<div class='calgrid'>"+cells+"</div>"+
     "<p class='legend'>"+(marks.length?marks.map(v=>
       "<b>"+v.n+"</b> "+v.d+" "+MON[mo].slice(0,3)+" at "+v.h+" UTC").join(" &middot; ")+". ":"")+
       "Discs are drawn as seen from the "+(HEMI?"southern":"northern")+" hemisphere — "+
-      "a waxing Moon is lit on the "+(HEMI?"left":"right")+". Click a day to set the orrery to it, "+
-      "or the month to jump anywhere.</p>"+
+      "a waxing Moon is lit on the "+(HEMI?"left":"right")+". Click a day to set the orrery to it.</p>"+
     "<div class='sub'>Right now</div>"+
     "<div class='moonrow'><span id='moonpic'></span><div><b>"+phaseName(m.el)+"</b><br>"+
       Math.round(m.lit*100)+"% lit &middot; "+m.age.toFixed(1)+" days old<br>in "+
@@ -1955,32 +1823,9 @@ function moonPanel(shift){
     sp.appendChild(drawPhase(+sp.dataset.el,26)));
   document.getElementById("calprev").onclick=()=>moonPanel(-1);
   document.getElementById("calnext").onclick=()=>moonPanel(1);
-  /* month / year picker behind the title */
-  const ctitle=document.getElementById("caltitle"), cpick=document.getElementById("calpick"),
-        cyr=document.getElementById("calyr");
-  calPickYear=y;
-  const paintPick=()=>{
-    cyr.textContent=calPickYear;
-    [...cpick.querySelectorAll(".mgrid button")].forEach(b=>
-      b.classList.toggle("on",+b.dataset.m===mo&&calPickYear===y));
-  };
-  paintPick();
-  ctitle.onclick=e=>{e.stopPropagation();
-    calPickYear=y; paintPick(); cpick.classList.toggle("open");};
-  cpick.onclick=e=>e.stopPropagation();
-  document.getElementById("calyprev").onclick=()=>{calPickYear--; paintPick();};
-  document.getElementById("calynext").onclick=()=>{calPickYear++; paintPick();};
-  [...cpick.querySelectorAll(".mgrid button")].forEach(b=>b.onclick=()=>{
-    calMonth=new Date(Date.UTC(calPickYear,+b.dataset.m,1)); moonPanel(0);});
-  document.getElementById("calnow").onclick=()=>{
-    const t=realToday(); calMonth=new Date(Date.UTC(t.y,t.m,1)); moonPanel(0);};
-  if(!moonPanel.docClose){moonPanel.docClose=true;
-    document.addEventListener("click",()=>{
-      const p=document.getElementById("calpick"); if(p) p.classList.remove("open");});}
   [...panel.querySelectorAll(".cal[data-d]")].forEach(c=>c.onclick=()=>{
     T=(Date.UTC(y,mo,+c.dataset.d,12,0,0)-J2000)/86400000;
     relayout(); running=false; document.getElementById("play").textContent="Play";
-    refT=T;
     moonPanel(0);
   });
 }
@@ -2033,7 +1878,6 @@ function eclipsePanel(){
     const p=c.dataset.d.split("-");
     T=(Date.UTC(+p[0],+p[1]-1,+p[2],12,0,0)-J2000)/86400000;
     relayout(); running=false; document.getElementById("play").textContent="Play";
-    refT=T;
     syncPicker();
   });
 }
@@ -2088,9 +1932,9 @@ const PHASES=[[22.5,"New Moon"],[67.5,"waxing crescent"],[112.5,"First Quarter"]
 const phaseName=el=>{for(const p of PHASES) if(el<p[0]) return p[1]; return "New Moon";};
 function nextPhase(target){                            /* 0 = new, 180 = full */
   const f=t=>{let d=moon(t).el-target; while(d>180)d-=360; while(d<-180)d+=360; return d;};
-  let t=refT, prev=f(t);
+  let t=T, prev=f(t);
   for(let i=1;i<=40;i++){
-    const tt=refT+i, cur=f(tt);
+    const tt=T+i, cur=f(tt);
     if(prev<0&&cur>=0){
       let a=tt-1,b=tt;
       for(let k=0;k<26;k++){const m=(a+b)/2; if(f(m)<0) a=m; else b=m;}
@@ -2459,13 +2303,13 @@ function relayout(){
 }
 
 /* ================= animation ======================================== */
-let running=true, last=performance.now(), dps=30, wall=0, frameN=0;
+let running=true, last=performance.now(), dps=9.6, wall=0, frameN=0;
 const speed=document.getElementById("speed"), datetxt=document.getElementById("datetxt");
 const setSpeed=()=>{dps=0.2*Math.pow(10,speed.value/25);};
 speed.addEventListener("input",setSpeed); setSpeed();
 document.getElementById("play").addEventListener("click",e=>{
   running=!running; e.target.textContent=running?"Pause":"Play";});
-document.getElementById("now").addEventListener("click",()=>{T=nowDays();relayout();markDate();});
+document.getElementById("now").addEventListener("click",()=>{T=nowDays();relayout();});
 document.getElementById("tilt").addEventListener("input",e=>{
   tiltDeg=+e.target.value; relayout();});
 document.getElementById("scale").addEventListener("click",e=>{
@@ -2520,7 +2364,6 @@ function gotoDate(str){
   if(p.length!==3) return;
   T=(Date.UTC(+p[0],+p[1]-1,+p[2],12,0,0)-J2000)/86400000;
   relayout(); if(selected) select(selected);
-  markDate();
 }
 datepick.addEventListener("change",e=>gotoDate(e.target.value));
 document.getElementById("events").addEventListener("change",e=>{
@@ -2680,53 +2523,18 @@ window.addEventListener("keydown",e=>{
   if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT") return;
   if(e.code==="Space"){e.preventDefault();document.getElementById("play").click();}
   else if(e.key==="Escape") select(null);
-  else if(e.key==="ArrowRight"){T+=e.shiftKey?30:1; relayout(); markDate();}
-  else if(e.key==="ArrowLeft"){T-=e.shiftKey?30:1; relayout(); markDate();}
+  else if(e.key==="ArrowRight"){T+=e.shiftKey?30:1; relayout();}
+  else if(e.key==="ArrowLeft"){T-=e.shiftKey?30:1; relayout();}
 });
 
 const order=[];
-/* ---------- floating chrome: layers popover and day stepping -------- */
-const layersbtn=document.getElementById("layersbtn"), layerpop=document.getElementById("layerpop");
-const datebtn=document.getElementById("datebtn"), datepop=document.getElementById("datepop");
-layersbtn.addEventListener("click",e=>{e.stopPropagation();
-  datepop.classList.remove("open"); datebtn.classList.remove("on");
-  const open=layerpop.classList.toggle("open");
-  layersbtn.classList.toggle("on",open);});
-datebtn.addEventListener("click",e=>{e.stopPropagation();
-  layerpop.classList.remove("open"); layersbtn.classList.remove("on");
-  const open=datepop.classList.toggle("open");
-  datebtn.classList.toggle("on",open);});
-document.addEventListener("click",e=>{
-  if(!e.target.closest(".lwrap")){
-    layerpop.classList.remove("open"); layersbtn.classList.remove("on");}
-  if(!e.target.closest(".dwrap")){
-    datepop.classList.remove("open"); datebtn.classList.remove("on");}});
-document.getElementById("stepfwd").addEventListener("click",()=>{T+=1;relayout();markDate();});
-document.getElementById("stepback").addEventListener("click",()=>{T-=1;relayout();markDate();});
-
-/* labels: a body's own name wins the space over a fainter neighbour, so the
-   inner system stops stacking Mercury on Venus on Encke when zoomed out */
-function placeLabels(){
-  const sw=stage.clientWidth||1000, s=sw/view.w, kk=sw/1000;
-  const pri=nd=>nd.b===selected?-1e7:
-    (nd.b.t==="planet"?-nd.b.d:(nd.b.t==="dwarf"?1e5:1e6));
-  nodes.slice().sort((a,b)=>pri(a)-pri(b)).reduce((box,nd)=>{
-    if(!nd.pos) return box;
-    const x=(nd.pos[0]-view.x)*s, y=(nd.pos[1]-view.y)*s-(nd.sysOuter+8)*kk;
-    const w=nd.b.n.length*6.4+8;
-    const hit=box.some(o=>Math.abs(o.x-x)<(o.w+w)/2&&Math.abs(o.y-y)<13);
-    nd.lab.style.visibility=hit?"hidden":"";
-    if(!hit) box.push({x:x,y:y,w:w});
-    return box;
-  },[]);
-}
-
 function frame(now){
   const dt=Math.min(0.05,(now-last)/1000); last=now; frameN++;
   if(running){T+=dt*dps*dir; wall+=dt;}
   datetxt.textContent=fmtDate(T);
   if(frameN%15===0){
     syncPicker();
+    const ov=document.getElementById("ovdate"); if(ov) ov.textContent=fmtDate(T);
   }
 
   let earth=null;
@@ -2762,7 +2570,6 @@ function frame(now){
   let changed=false;
   for(let i=0;i<sorted.length;i++) if(order[i]!==sorted[i]){changed=true;break;}
   if(changed){sorted.forEach((nd,i)=>{order[i]=nd;layer.appendChild(nd.g);});}
-  if(frameN%6===0) placeLabels();
 
   const esel=nodes.find(n=>n.b===selected);
   if(showSight&&esel&&esel.pos&&selected&&selected.n!=="Earth"&&!selected.kind){
@@ -2777,8 +2584,13 @@ function frame(now){
     const f=nodes.find(n=>n.b===selected);
     if(f&&f.pos){view.x=f.pos[0]-view.w/2; view.y=f.pos[1]-viewH()/2; applyView();}
   }
+  /* Moons run on the simulation clock at their true orbital periods, so
+     the speed slider governs them along with everything else. Slow the
+     model right down and you can watch the Moon go round Earth; wind it
+     up and the inner moons blur, which is honest — Phobos really does
+     lap Mars three times a day. Only the phases are arbitrary. */
   moonSats.forEach(m=>{
-    const th=m.ph+(m.retro?-1:1)*2*Math.PI*(wall/2.5)*(m.fast/m.P);
+    const th=m.ph+(m.retro?-1:1)*2*Math.PI*T/m.P;
     m.g.setAttribute("transform","translate("+(m.r*Math.cos(th)).toFixed(2)+
       ","+(m.r*Math.sin(th)).toFixed(2)+")");});
   if(frameN%2===0) beltRings.forEach(br=>beltSpin(br,T));
@@ -2857,8 +2669,6 @@ if(location.protocol==="http:"||location.protocol==="https:"){
 }
 
 document.getElementById("foot").innerHTML=
- "<b>Keys.</b> Space pauses &middot; ← → step a day, shift for a month &middot; Esc deselects &middot; "+
- "click empty sky to deselect. Scroll to zoom, drag to pan.<br><br>"+
  "<b>Positions.</b> The eight planets and Pluto use JPL's Keplerian elements for approximate positions "+
  "(J2000 epoch with linear rates, valid roughly 1800–2050); they should be right to a few arcminutes. "+
  "Ceres, Haumea, Makemake, Eris and the two comets use fixed osculating elements with a mean motion, which is "+
@@ -2870,8 +2680,11 @@ document.getElementById("foot").innerHTML=
  "ellipses but keeps the ordering and the crossings honest. Planet sizes are not to scale in any mode — use the "+
  "size comparison in the panel for that. <b>Surfaces</b> are procedurally generated from spacecraft descriptions, "+
  "not photographic textures ("+renderMs+" ms to build). The panel portrait rotates in the correct direction, "+
- "Venus and Uranus backwards, but at a watchable rate rather than the true day length. Moon systems are "+
- "enlarged to be visible and run on their own clock. Moon counts confirmed to April 2026. "+
+ "Venus and Uranus backwards, but at a watchable rate rather than the true day length. Moons in the orbit "+
+ "view are enlarged to be visible, but they keep their true orbital periods on the simulation clock, so "+
+ "the speed control governs them too — the moon-system inset in the panel is the exception, running at a "+
+ "steady readable pace whatever the clock is doing. Their starting phases are arbitrary; only the rates "+
+ "are real. Moon counts confirmed to April 2026. "+
  "<b>The sky panel</b> converts each body's position into the view from Earth: elongation from the Sun, "+
  "whether it is a morning or evening object, and which constellation it falls in by the IAU boundaries. "+
  "That last point is why Ophiuchus appears on the outer ring and the spans are unequal — these are the real "+
