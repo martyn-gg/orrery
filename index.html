@@ -2307,7 +2307,7 @@ function relayout(){
    the top. The default is stated as a rate and the slider position is
    derived from it, so it is exactly 2.5 rather than whatever an integer
    notch happens to land on. */
-const DEFAULT_DPS=2.5;
+const DEFAULT_DPS=1;
 const dpsFromSlider=v=>0.2*Math.pow(10,v/25);
 const sliderFromDps=d=>25*Math.log10(d/0.2);
 let running=true, last=performance.now(), dps=DEFAULT_DPS, wall=0, frameN=0;
