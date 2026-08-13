@@ -1,14 +1,15 @@
 /* Orrery — offline cache.
    Everything the app needs is in index.html, so this is deliberately small:
    cache the shell on install, serve from cache, refresh in the background. */
-const CACHE = 'orrery-v1';
+const CACHE = 'orrery-v2';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/icon-maskable-512.png'
+  './icons/icon-maskable-512.png',
+  './og-image.png'
 ];
 
 self.addEventListener('install', e => {
