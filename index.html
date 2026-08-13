@@ -219,7 +219,7 @@
 
 <div class="controls">
   <button id="play">Pause</button>
-  <label class="ctl">Speed <input id="speed" type="range" min="0" max="100" value="42"></label>
+  <label class="ctl">Speed <input id="speed" type="range" min="0" max="100" step="0.1" value="27.4"></label>
   <span class="date"><b id="datetxt">—</b></span>
   <button id="now">Today</button>
   <label class="ctl">Tilt <input id="tilt" type="range" min="0" max="72" value="22"></label>
@@ -2303,9 +2303,17 @@ function relayout(){
 }
 
 /* ================= animation ======================================== */
-let running=true, last=performance.now(), dps=9.6, wall=0, frameN=0;
+/* The slider is logarithmic — 0.2 days per second at the bottom, 2000 at
+   the top. The default is stated as a rate and the slider position is
+   derived from it, so it is exactly 2.5 rather than whatever an integer
+   notch happens to land on. */
+const DEFAULT_DPS=2.5;
+const dpsFromSlider=v=>0.2*Math.pow(10,v/25);
+const sliderFromDps=d=>25*Math.log10(d/0.2);
+let running=true, last=performance.now(), dps=DEFAULT_DPS, wall=0, frameN=0;
 const speed=document.getElementById("speed"), datetxt=document.getElementById("datetxt");
-const setSpeed=()=>{dps=0.2*Math.pow(10,speed.value/25);};
+const setSpeed=()=>{dps=dpsFromSlider(+speed.value);};
+speed.value=sliderFromDps(DEFAULT_DPS);
 speed.addEventListener("input",setSpeed); setSpeed();
 document.getElementById("play").addEventListener("click",e=>{
   running=!running; e.target.textContent=running?"Pause":"Play";});
