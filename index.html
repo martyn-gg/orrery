@@ -160,6 +160,9 @@
     background:#0a0e1e;cursor:pointer}
   .ecl:hover{border-color:#3c4470}
   .ecl b{display:block;font-size:12.5px;margin-bottom:4px}
+  .ecl.evt b{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .ecl b .ics{font-size:11.5px;font-weight:400}
+  button.linkish.more{font-size:12.5px;margin:0 0 4px}
   .gone{font-size:9.5px;color:#6b7396;border:1px solid #2a3358;border-radius:5px;
     padding:0 5px;margin-left:7px;font-weight:400;text-transform:uppercase;letter-spacing:.5px}
   .pill{display:inline-block;font-size:9.5px;padding:1px 6px;border-radius:5px;margin-right:7px;
@@ -167,6 +170,15 @@
   .pill.solar{background:#3a2c12;color:#e8b866}
   .pill.lunar{background:#1c2440;color:#93a8e0}
   .where{display:block;font-size:11.5px;line-height:1.5;color:#9aa3c2;margin-bottom:5px}
+  svg.sky{display:block;width:100%;max-width:340px;margin:2px auto 0}
+  svg.sky .card{fill:var(--muted);font-size:11px;text-anchor:middle}
+  svg.sky .fig{stroke:#3a4677;stroke-width:.8}
+  svg.sky .sn{fill:#8f96b3;font-size:8.5px}
+  svg.sky .bn{fill:#e8ebf5;font-size:10px;paint-order:stroke;stroke:#070a17;stroke-width:2.5px}
+  svg.year{display:block;width:100%;margin:4px 0 6px}
+  svg.year .ym{fill:var(--muted);font-size:9.5px}
+  svg.year .yp{fill:#c3cae0;font-size:11px}
+  .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
   table.rs{width:100%;border-collapse:collapse;font-size:12.5px;margin:4px 0 8px;font-variant-numeric:tabular-nums}
   table.rs th{font-weight:400;color:var(--muted);text-align:left;font-size:11px;padding:0 0 4px}
   table.rs td{padding:4px 0;border-bottom:1px solid #151a30;color:#c3cae0;white-space:nowrap}
@@ -1473,6 +1485,12 @@ let HEMI=0;                               // 0 = northern view, 1 = southern
 const SITES_DEFAULT=[{n:"southern England",lat:51.5,lon:-0.13},{n:"Sydney",lat:-33.9,lon:151.2}];
 const SITES=SITES_DEFAULT.map(s=>Object.assign({},s));
 const OBLIQ=23.4393*D2R;
+function eq2ecl(raH,decD){                 // hours and degrees in, degrees out
+  const a=raH*15*D2R, d=decD*D2R;
+  const lam=Math.atan2(Math.sin(a)*Math.cos(OBLIQ)+Math.tan(d)*Math.sin(OBLIQ), Math.cos(a));
+  const bet=Math.asin(Math.sin(d)*Math.cos(OBLIQ)-Math.cos(d)*Math.sin(OBLIQ)*Math.sin(a));
+  return {lam:lam*R2D, bet:bet*R2D};
+}
 function ecl2eq(lam,bet){                 // radians in, {ra hours, dec deg}
   const sl=Math.sin(lam),cb=Math.cos(bet),sb=Math.sin(bet);
   const dec=Math.asin(sb*Math.cos(OBLIQ)+cb*Math.sin(OBLIQ)*sl);
@@ -1920,13 +1938,14 @@ function tonight(){
       Math.round(m.lit*100)+"% lit &middot; "+m.age.toFixed(1)+" days old<br>"+
       "in "+constellation(m.lam)+" &middot; "+Math.round(m.dist).toLocaleString("en-GB")+" km"+
       (nw?"<br>New moon "+fmtDate(nw):"")+(nf?" &middot; full "+fmtDate(nf):"")+"</div></div>"+
-    "<div class='sub' style='margin-top:0'>Planets, best first</div>"+
+    "<div class='sub' style='margin-top:0'>The sky now</div><div id='skynow'>"+skySVG(T)+"</div>"+
+    "<div class='sub'>Planets, best first</div>"+
     naked.map(r=>"<p class='tonight'><b>"+r.n+"</b>: "+
       (r.el<10?"too close to the Sun to see"
         :(r.el>150?"near opposition, up all night":
           (r.east?"evening sky":"morning sky")+", "+Math.round(r.el)+"° from the Sun"))+
       ", in "+r.con+". "+r.sz.toFixed(1)+"″ across.</p>").join("")+
-    nightHTML()+eventsHTML()+
+    nightHTML()+eventsHTML()+yearHTML()+
     "<div class='sub'>Dwarf planets</div>"+
     "<p class='tonight'>"+rows.filter(r=>r.t==="dwarf").map(r=>r.n+" in "+r.con).join(", ")+
       ". All far too faint for the naked eye; Ceres and Pluto are within reach of a good "+
@@ -1952,11 +1971,33 @@ let tonightDay=null;
    (its parallax lifts the horizon) and -0.57° for a planet.            */
 const H0={Sun:-0.833,Moon:0.125};
 function gmst(t){ return ((280.46061837+360.98564736629*t)%360+360)%360; }
+/* Positions for the sky as seen are apparent, referred to the equinox of
+   the date: the planets' J2000 longitudes move on by precession (50.3″ a
+   year), all bodies take the main term of nutation, and the Sun lags by
+   aberration (20.5″). The lunar theory already counts from the equinox of
+   date. Without this the Moon reaches a planet's right ascension about
+   forty minutes early, and the seasons fall several hours out. */
+const precess=t=>50.29/3600*t/365.25;
+const nutate=t=>-17.2/3600*Math.sin((125.04-0.052954*t)*D2R);
+const lamApp=t=>lamSun(t)+precess(t)+nutate(t)-20.5/3600;
+/* a catalogue star (J2000 right ascension in hours, declination in
+   degrees) carried to the equinox of date the same way */
+function starOf(raH,decD,t){
+  const e=eq2ecl(raH,decD), q=ecl2eq((e.lam+precess(t)+nutate(t))*D2R,e.bet*D2R);
+  return {ra:q.ra*15, dec:q.dec};
+}
+/* the Earth itself, not the Earth–Moon barycentre the elements describe:
+   the barycentre lies 1/82.3 of the way to the Moon */
+function earthSunDist(t){
+  const e=vec(BODIES[2],t), m=moon(t), k=m.dist/149597870.7/82.3,
+    l=m.lam*D2R, b=m.bet*D2R;
+  return Math.hypot(e.x-k*Math.cos(b)*Math.cos(l), e.y-k*Math.cos(b)*Math.sin(l), e.z-k*Math.sin(b));
+}
 function eqOf(name,t){
   let lam,bet;
-  if(name==="Sun"){ const e=vec(BODIES[2],t); lam=Math.atan2(-e.y,-e.x); bet=0; }
-  else if(name==="Moon"){ const m=moon(t); lam=m.lam*D2R; bet=m.bet*D2R; }
-  else { const g=geo(BODIES.find(b=>b.n===name),t); lam=g.lam*D2R; bet=g.bet*D2R; }
+  if(name==="Sun"){ lam=lamApp(t)*D2R; bet=0; }
+  else if(name==="Moon"){ const m=moon(t); lam=(m.lam+nutate(t))*D2R; bet=m.bet*D2R; }
+  else { const g=geo(BODIES.find(b=>b.n===name),t); lam=(g.lam+precess(t)+nutate(t))*D2R; bet=g.bet*D2R; }
   const q=ecl2eq(lam,bet); return {ra:q.ra*15, dec:q.dec};
 }
 function altOf(name,t){
@@ -2039,6 +2080,9 @@ function nightPlan(t){
 
 /* ---------- what is coming up -------------------------------------- */
 const wrap180=d=>((d%360)+540)%360-180;
+/* bright stars the Moon can pass close to: name, J2000 RA (h), Dec (°) */
+const BRIGHT=[["Aldebaran",4.599,16.51],["Pleiades",3.790,24.11],["Regulus",10.139,11.97],
+  ["Spica",13.420,-11.16],["Antares",16.490,-26.43]];
 const METEORS=[
   {n:"Quadrantid",l:283.15,dec:49.5,zhr:80}, {n:"Lyrid",l:32.32,dec:34,zhr:18},
   {n:"Eta Aquariid",l:45.5,dec:-1,zhr:50}, {n:"Southern Delta Aquariid",l:128,dec:-16.4,zhr:25},
@@ -2119,6 +2163,34 @@ function upcoming(t0,days){
         b.n+" stands still against the stars, then returns to its usual eastward drift"});
     });
   });
+  /* the seasons: the Sun's apparent longitude of date at 0°, 90°, 180°
+     and 270° */
+  const north=OBS_LAT>=0;
+  [[0,"The March equinox: the Sun crosses the equator heading north"],
+   [90,"The June solstice, the "+(north?"longest":"shortest")+" day of the year here"],
+   [180,"The September equinox: the Sun crosses the equator heading south"],
+   [270,"The December solstice, the "+(north?"shortest":"longest")+" day of the year here"]]
+    .forEach(([L,say])=>crossings0(t=>wrap180(lamApp(t)-L),t0,t0+days,1)
+      .forEach(tt=>ev.push({t:tt,body:null,txt:say})));
+  /* the Earth nearest to and furthest from the Sun */
+  crossings0(t=>(earthSunDist(t+0.5)-earthSunDist(t-0.5))*1e6,t0,t0+days,2).forEach(tt=>{
+    const near=earthSunDist(tt+1)>earthSunDist(tt), km=earthSunDist(tt)*149.598;
+    ev.push({t:tt,body:"Earth",txt:"The Earth is at its "+(near?"nearest to":"furthest from")+
+      " the Sun, "+km.toFixed(1)+" million km"});
+  });
+  /* the Moon passing a bright star near its path, kept only when the
+     Moon is up in a dark sky here within four hours of the pass */
+  const darkMoon=tt=>{ for(let d=-4/24;d<=4/24;d+=1/48)
+    if(altOf("Sun",tt+d)<-6&&altOf("Moon",tt+d)>10) return true; return false; };
+  BRIGHT.forEach(st=>{
+    const sq=t=>starOf(st[1],st[2],t);
+    crossings0(t=>wrap180(eqOf("Moon",t).ra-sq(t).ra),t0,t0+days,0.25).forEach(tt=>{
+      const sep=eqOf("Moon",tt).dec-sq(tt).dec;
+      if(Math.abs(sep)<3&&darkMoon(tt)) ev.push({t:tt,body:null,
+        txt:"The Moon passes "+(Math.abs(sep)<0.5?"very close to ":Math.abs(sep).toFixed(1)+"° "+
+          (sep>0?"north":"south")+" of ")+(st[0]==="Pleiades"?"the Pleiades":st[0])+", in a dark sky here"});
+    });
+  });
   /* meteor showers at their peak, by the Sun's longitude (J2000) from
      the International Meteor Organization's working list, with the
      Moon's light that night; a shower whose radiant never rises here is
@@ -2134,6 +2206,125 @@ function upcoming(t0,days){
   ev.sort((a,b)=>a.t-b.t);
   upcomingCache={key,list:ev};
   return ev;
+}
+
+/* ---------- the year ahead: when each planet can be seen -------------
+   Every second day for a year, from the observer's place: is the planet
+   at least 5° up when evening twilight ends (the Sun 8° down), and is it
+   5° up before morning twilight begins? Where the Sun never gets that
+   low, local midnight stands in for both. */
+let yearCache={key:null};
+const YEAR_PLANETS=["Mercury","Venus","Mars","Jupiter","Saturn"];
+function yearPlan(t){
+  const d0=localMidnight(t), key=d0+"|"+OBS_LAT+"|"+OBS_LON;
+  if(yearCache.key===key) return yearCache;
+  const step=2, n=183, rows={};
+  YEAR_PLANETS.forEach(p=>rows[p]={ev:[],mo:[]});
+  for(let k=0;k<n;k++){
+    const day=d0+k*step;
+    const dusk=crossings("Sun",day+0.4,day+1.0,-8).list.find(c=>!c.up);
+    const dawn=crossings("Sun",day+1.0,day+1.6,-8).list.find(c=>c.up);
+    const te=dusk?dusk.t:day+1, tm=dawn?dawn.t:day+1;
+    YEAR_PLANETS.forEach(p=>{ rows[p].ev.push(altOf(p,te)>=5); rows[p].mo.push(altOf(p,tm)>=5); });
+  }
+  yearCache={key,d0,step,n,rows};
+  return yearCache;
+}
+function yearHTML(){
+  const y=yearPlan(T), W=330, L=60, R=4, rowH=22, top=16, H=top+rowH*YEAR_PLANETS.length+2;
+  const x=k=>L+k/y.n*(W-L-R);
+  let g="";
+  /* month lines and initials */
+  for(let k=0;k<y.n;k++){
+    const a=new Date(J2000+(y.d0+k*y.step+0.5)*86400000), b=new Date(J2000+(y.d0+(k+1)*y.step+0.5)*86400000);
+    if(k===0||a.getUTCMonth()!==b.getUTCMonth()){
+      const xx=k===0?x(0):x(k+1);
+      const m=k===0?a:b;
+      if(k>0) g+="<line x1='"+xx.toFixed(1)+"' x2='"+xx.toFixed(1)+"' y1='"+(top-4)+"' y2='"+(H-2)+"' stroke='#1d2340'/>";
+      if(xx<W-20) g+="<text x='"+(xx+2).toFixed(1)+"' y='10' class='ym'>"+MON[m.getUTCMonth()].slice(0,3)+"</text>";
+    }
+  }
+  YEAR_PLANETS.forEach((p,i)=>{
+    const y0=top+i*rowH;
+    g+="<text x='0' y='"+(y0+12)+"' class='yp'>"+p+"</text>";
+    [["ev","#e8b866",y0+3,"evening"],["mo","#7fc7ff",y0+11,"morning"]].forEach(([k,c,yy,word])=>{
+      const a=y.rows[p][k]; let s0=-1;
+      for(let j=0;j<=a.length;j++){
+        if(j<a.length&&a[j]&&s0<0) s0=j;
+        if((j===a.length||!a[j])&&s0>=0){
+          g+="<rect x='"+x(s0).toFixed(1)+"' y='"+yy+"' width='"+Math.max(1,x(j)-x(s0)).toFixed(1)+
+            "' height='6' rx='2' fill='"+c+"'><title>"+p+" in the "+word+" sky, "+
+            fmtDate(y.d0+s0*y.step+0.5)+" to "+fmtDate(y.d0+(j-1)*y.step+0.5)+"</title></rect>";
+          s0=-1;
+        }
+      }
+    });
+  });
+  return "<div class='sub'>The year ahead</div>"+
+    "<svg class='year' viewBox='0 0 "+W+" "+H+"' role='img' aria-label='When each naked-eye planet "+
+      "can be seen in the evening or morning sky over the next year'>"+g+"</svg>"+
+    "<p class='legend'><span class='sw' style='background:#e8b866'></span>Evening: at least 5° up when "+
+    "evening twilight ends. <span class='sw' style='background:#7fc7ff'></span>Morning: at least 5° up "+
+    "before morning twilight begins. A planet in both is up all night. Seen from "+SITES[HEMI].n+
+    ", a year from "+fmtDate(y.d0+0.5)+".</p>";
+}
+
+/* ---------- the sky now: an all-sky chart ----------------------------
+   The whole sky from the observer's place, as if lying on your back with
+   your head to the north: north at the top, east on the left, the zenith
+   in the middle and the horizon at the edge. Distance from the centre is
+   proportional to the angle down from the zenith. Stars are the
+   constellation figures from the star charts, carried to the equinox of
+   date. */
+let SKYSTARS=null;
+function skyStars(){
+  if(SKYSTARS) return SKYSTARS;
+  SKYSTARS=Object.keys(CON).map(k=>({lines:CON[k].lines,
+    stars:CON[k].stars.map(s=>{const e=eq2ecl(s[1],s[2]); return {n:s[0],mag:s[3],lam:e.lam,bet:e.bet};})}));
+  return SKYSTARS;
+}
+function altAz(raDeg,dec,t){
+  const H=(gmst(t)+OBS_LON-raDeg)*D2R, la=OBS_LAT*D2R, d=dec*D2R;
+  const alt=Math.asin(Math.sin(la)*Math.sin(d)+Math.cos(la)*Math.cos(d)*Math.cos(H))*R2D;
+  const az=Math.atan2(-Math.cos(d)*Math.sin(H), Math.sin(d)*Math.cos(la)-Math.cos(d)*Math.sin(la)*Math.cos(H))*R2D;
+  return {alt, az:(az+360)%360};
+}
+const SKY_R=150;
+function skyXY(alt,az){ const r=SKY_R*(90-alt)/90, a=az*D2R; return [-r*Math.sin(a), -r*Math.cos(a)]; }
+function skySVG(t){
+  const R=SKY_R, sunA=altOf("Sun",t), pn=precess(t)+nutate(t), f=v=>v.toFixed(1);
+  const bg=sunA>-0.833?"#1d3566":sunA>-6?"#16244a":sunA>-12?"#0d1630":"#070a17";
+  const starOp=sunA>-0.833?0.3:sunA>-6?0.55:1;
+  let g="<circle r='"+R+"' fill='"+bg+"' stroke='#3c4470'/>";
+  [30,60].forEach(a=>g+="<circle r='"+f(R*(90-a)/90)+"' fill='none' stroke='#232a48' stroke-dasharray='2 4'/>");
+  [["N",0,-R-9],["E",-R-9,0],["S",0,R+9],["W",R+9,0]].forEach(([l,x,y])=>
+    g+="<text x='"+x+"' y='"+(y+4)+"' class='card'>"+l+"</text>");
+  /* stars and figures */
+  skyStars().forEach(c=>{
+    const pos=c.stars.map(s=>{const q=ecl2eq((s.lam+pn)*D2R,s.bet*D2R), h=altAz(q.ra*15,q.dec,t);
+      return {h, xy:h.alt>0?skyXY(h.alt,h.az):null, s};});
+    c.lines.forEach(L=>{ for(let i=1;i<L.length;i++){ const a=pos[L[i-1]], b=pos[L[i]];
+      if(a&&b&&a.xy&&b.xy) g+="<line x1='"+f(a.xy[0])+"' y1='"+f(a.xy[1])+"' x2='"+f(b.xy[0])+"' y2='"+f(b.xy[1])+"' class='fig'/>"; } });
+    pos.forEach(p=>{ if(!p.xy) return;
+      g+="<circle cx='"+f(p.xy[0])+"' cy='"+f(p.xy[1])+"' r='"+Math.max(0.7,2.6-0.45*p.s.mag).toFixed(2)+"' fill='#dfe4f5' opacity='"+starOp+"'/>";
+      if(p.s.mag<1.0&&!/^\d/.test(p.s.n)) g+="<text x='"+f(p.xy[0]+4)+"' y='"+f(p.xy[1]+3)+"' class='sn'>"+p.s.n+"</text>"; });
+  });
+  /* Sun, Moon and planets */
+  const body=(name,r,fill,label)=>{ const q=eqOf(name,t), h=altAz(q.ra,q.dec,t);
+    if(h.alt<=0) return; const [x,y]=skyXY(h.alt,h.az);
+    g+="<circle cx='"+f(x)+"' cy='"+f(y)+"' r='"+r+"' fill='"+fill+"'/>"+
+      "<text x='"+f(x+r+3)+"' y='"+f(y+3.5)+"' class='bn'>"+label+"</text>"; };
+  if(sunA>-0.833) body("Sun",7,"#fdb813","Sun");
+  body("Moon",6,"#e6e9f2","Moon");
+  ["Mercury","Venus","Mars","Jupiter","Saturn"].forEach(n=>body(n,3.6,BODIES.find(b=>b.n===n).c,n));
+  const d=new Date(J2000+t*86400000);
+  const when=("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2)+" on "+
+    d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
+  return "<svg class='sky' viewBox='-172 -172 344 344' role='img' aria-label='The whole sky seen from "+
+    SITES[HEMI].n+" at "+when+"'>"+g+"</svg>"+
+    "<p class='legend'>From "+SITES[HEMI].n+" at "+when+(sunA>-0.833?", in daylight, so the stars are dimmed":"")+(running?
+      " (the clock is running, so the sky turns with it)":"")+". Hold it overhead with north "+
+    "at the top: east is on the left, the edge is the horizon and the dashed rings are 30° and 60° up.</p>";
 }
 
 /* ---------- the observer's own location ------------------------------
@@ -2186,13 +2377,40 @@ function nightHTML(){
       "sunset to half an hour before sunrise, with its altitude and compass direction. Dimmed rows never climb 5° in that time. Times are good to a minute or two "+
       "for the planets and a few minutes for the Moon.</p>";
 }
+let showAllEvents=false;
 function eventsHTML(){
-  const ev=upcoming(T,180).slice(0,12);
+  const all=upcoming(T,180), ev=showAllEvents?all:all.slice(0,10);
   if(!ev.length) return "";
-  return "<div class='sub'>Coming up</div>"+ev.map(e=>
-    "<div class='ecl evt' data-t='"+e.t+"'><b>"+fmtDate(e.t)+"</b><span class='where'>"+e.txt+
-    "</span></div>").join("")+
-    "<p class='legend'>Tap an entry to set the orrery to that night.</p>";
+  return "<div class='sub'>Coming up</div>"+ev.map((e,i)=>
+    "<div class='ecl evt' data-t='"+e.t+"'><b><span>"+fmtDate(e.t)+"</span>"+
+    "<button class='linkish ics' data-i='"+i+"' title='Save this event to your calendar'>Add to calendar</button></b>"+
+    "<span class='where'>"+e.txt+"</span></div>").join("")+
+    (all.length>ev.length?"<button class='linkish more' id='moreevents'>Show all "+all.length+
+      " in the next six months</button>":"")+
+    "<p class='legend'>Tap an entry to set the orrery to that moment. Add to calendar saves a "+
+    "file your calendar app can open, made in this browser.</p>";
+}
+/* one event as an iCalendar file: half an hour from the moment, with a
+   reminder an hour before. The observer's location is not in it. */
+function icsFor(e){
+  const st=d=>new Date(J2000+d*86400000).toISOString().replace(/[-:]/g,"").replace(/\.\d+Z$/,"Z");
+  const esc=x=>x.replace(/\\/g,"\\\\").replace(/[,;]/g,m=>"\\"+m);
+  const fold=l=>{let o="";while(l.length>60){o+=l.slice(0,60)+"\r\n ";l=l.slice(60);}return o+l;};
+  const title=e.txt.split(/[,;:]/)[0];
+  return ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//greville-giddings.me//Orrery//EN","BEGIN:VEVENT",
+    "UID:"+Math.round(e.t*1440)+"-"+title.replace(/\W+/g,"-").toLowerCase()+"@greville-giddings.me",
+    "DTSTAMP:"+st((Date.now()-J2000)/86400000),"DTSTART:"+st(e.t),"DTEND:"+st(e.t+1/48),
+    "SUMMARY:"+esc(title),"DESCRIPTION:"+esc(e.txt+". From the orrery at greville-giddings.me/orrery."),
+    "BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:"+esc(title),"TRIGGER:-PT1H","END:VALARM",
+    "END:VEVENT","END:VCALENDAR"].map(fold).join("\r\n")+"\r\n";
+}
+function saveIcs(e){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([icsFor(e)],{type:"text/calendar"}));
+  a.download=e.txt.split(/[,;:]/)[0].replace(/[^\w ]+/g,"").trim().replace(/\s+/g,"-").toLowerCase()+
+    "-"+isoDate(e.t)+".ics";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
 }
 function wireNight(){
   const ch=document.getElementById("sitechange"), form=document.getElementById("siteform");
@@ -2218,6 +2436,11 @@ function wireNight(){
     T=+c.dataset.t; running=false; document.getElementById("play").textContent="Play";
     relayout(); syncPicker(); tonight();
   });
+  [...panel.querySelectorAll("button.ics")].forEach(b=>b.onclick=ev=>{
+    ev.stopPropagation(); saveIcs(upcoming(T,180)[+b.dataset.i]);
+  });
+  const more=document.getElementById("moreevents");
+  if(more) more.onclick=()=>{ showAllEvents=true; tonight(); };
 }
 function afterSiteChange(){ syncHemi(); buildConList(); tonight(); }
 
@@ -3123,6 +3346,7 @@ function frame(now){
   if(frameN%15===0){
     syncPicker();
     const ov=document.getElementById("ovdate"); if(ov) ov.textContent=fmtDate(T);
+    const sk=document.getElementById("skynow"); if(sk&&!selected&&curTab==="tonight") sk.innerHTML=skySVG(T);
     const yr=new Date(J2000+T*86400000).getUTCFullYear();
     rangeNote.hidden=yr>=1800&&yr<=2050;
     writeHash();
@@ -3250,7 +3474,7 @@ if(new URLSearchParams(location.search).has("test"))      /* hooks for tools/che
     getT:()=>T, setT:v=>{T=v;relayout();},
     setObserver:(la,lo)=>{OBS_LAT=la;OBS_LON=lo;}, screen:()=>nodes.map(n=>[n.b.n,n.pos[0],n.pos[1]]),
     centre:()=>[CX,CY], azOf, altOf, view:()=>({x:view.x,y:view.y,w:view.w,h:viewH()}),
-    fitted:()=>fitted, orbitExt:()=>orbitExt.slice()};
+    fitted:()=>fitted, orbitExt:()=>orbitExt.slice(), yearPlan, icsFor, starOf, altAz};
 
 /* Respect a stated preference for reduced motion: the model is just as
    useful held still, and constant orbital drift is exactly the sort of
@@ -3327,7 +3551,13 @@ document.getElementById("foot").innerHTML=[
  "conventions almanacs use. A planet stands still where its motion in ecliptic longitude turns round. "+
  "Meteor showers peak when the Sun reaches the longitude in the International Meteor Organization's "+
  "working list, and the rate given is its zenithal hourly rate, the count under a dark sky with the "+
- "radiant overhead; most people see fewer.",
+ "radiant overhead; most people see fewer. The seasons are the Sun's apparent longitude reaching 0°, 90°, 180° "+
+ "and 270°. Separations are measured from the Earth's centre: seen from the ground the Moon can sit up to "+
+ "a degree from where they put it, which is also why the page does not predict the Moon covering a star.",
+ "<b>The sky now and the year ahead</b> use apparent positions referred to the equinox of the date "+
+ "(precession, the main term of nutation and, for the Sun, aberration), with the constellation figures "+
+ "from the star charts carried forward the same way. The year ahead asks, every second day, whether "+
+ "each planet is at least 5° up when the Sun is 8° below the horizon, after dusk and before dawn.",
  "<b>Eclipse data is not computed here.</b> Paths of totality need a full lunar theory and Besselian "+
  "elements, so those entries are published figures from eclipse catalogues and the Royal Observatory, "+
  "credited as such."

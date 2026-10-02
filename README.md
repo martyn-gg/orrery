@@ -38,10 +38,15 @@ move by Kepler's second law, and the surfaces are rendered procedurally at load.
 - Rising, setting and best viewing times for the Moon and the five naked-eye planets, sunset,
   sunrise and the hours of darkness, for southern England, Sydney or a place you set (kept in your
   browser only)
+- The sky now: an all-sky chart for your place and the time on the clock, with the
+  constellation figures, the Moon, the planets and, by day, the Sun
 - Coming up: the next oppositions, greatest elongations, Venus or Mercury passing between the
-  Earth and the Sun (and the rare transits), close passes of the Moon by a planet, close pairs
-  of planets, the start and end of retrograde motion, and meteor shower peaks with the Moon's
-  light that night, each one a tap away
+  Earth and the Sun (and the rare transits), close passes of the Moon by a planet or by a bright
+  star in a dark sky where you are, close pairs of planets, the start and end of retrograde
+  motion, meteor shower peaks with the Moon's light that night, the solstices and equinoxes, and
+  the Earth's nearest and furthest points from the Sun. Each one is a tap away, and any of them
+  can be saved to your calendar as an .ics file made in the browser
+- The year ahead: when each naked-eye planet is in the evening or morning sky from your place
 - A compass direction beside each planet's best time, so you know where to look
 - Retrograde charts: the apparent path against the stars over the loop nearest your date, with
   stationary points and dates
@@ -119,13 +124,16 @@ Saturn's opposition comes out as 4 October 2026 and Mars's as 19 February 2027; 
 
 Those checks, and others, are now a script. `tools/check.mjs` loads the page in headless
 Chromium and tests it against published figures: opposition, conjunction and elongation dates,
-a new moon, the Coming up list's timings for October 2026 to January 2027 from In-The-Sky.org
-(conjunctions, stationary points and meteor shower peaks),
+a new moon, the Coming up list's timings for October 2026 to July 2027 from In-The-Sky.org
+(conjunctions, stationary points, meteor shower peaks, the seasons, the Earth's nearest and
+furthest points, and the Moon passing the Pleiades and Regulus), Polaris standing at the
+observer's latitude on the sky chart, the year-ahead chart on four dates,
 the 2032 transit of Mercury, and rising and setting times for London on 2 October 2026 from
 timeanddate.com.
 It also checks that the planets travel anticlockwise, that a link restores the view, that the
-date-range notice appears when it should, that the opening view fits a 21:9 window, and that
-the page loads without errors at desktop and phone sizes. To run it:
+date-range notice appears when it should, that the opening view fits a 21:9 window, that a
+calendar file is well formed and downloads, and that the page loads without errors at desktop
+and phone sizes. To run it:
 
 ```bash
 npm install --no-save --include=dev playwright   # once; node_modules is gitignored

@@ -80,16 +80,18 @@ ok("New moon 12/08/2026", isoOf(ev.newMoon).startsWith("2026-08-12"), isoOf(ev.n
 // there are equal ecliptic longitude and the others equal right ascension, as the page does them.
 const up = await T(([a, b]) => {
   const o = window.orreryTest;
-  return { y26: o.upcoming(a, 120).map(e => [e.t, e.txt]), y32: o.upcoming(b, 40).map(e => [e.t, e.txt]) };
+  return { y26: o.upcoming(a, 300).map(e => [e.t, e.txt]), y32: o.upcoming(b, 40).map(e => [e.t, e.txt]) };
 }, [days("2026-10-01T00:00:00Z"), days("2032-10-25T00:00:00Z")]);
-const find = (list, re) => list.find(e => re.test(e[1])) || [NaN, ""];
+// the listed event matching re that falls nearest the published time
+const find = (list, re, iso) => list.filter(e => re.test(e[1]))
+  .sort((a, b) => (iso ? Math.abs(a[0] - days(iso)) - Math.abs(b[0] - days(iso)) : 0))[0] || [NaN, ""];
 for (const [re, iso, mins, sep, label] of [
   [/^Venus passes between/, "2026-10-24T03:39:00Z", 30, "6.5° south", "Venus between the Earth and the Sun 24/10/2026 03:39"],
   [/^Mercury passes between/, "2026-11-04T14:20:00Z", 30, "0.4° south", "Mercury between the Earth and the Sun 04/11/2026 14:20"],
-  [/^Mercury passes .* of Venus/, "2026-10-05T14:50:00Z", 30, "5.4° north", "Mercury and Venus 05/10/2026 14:50, 5°26'"],
+  [/^Mercury passes .* of Venus/, "2026-10-05T14:50:00Z", 15, "5.4° north", "Mercury and Venus 05/10/2026 14:50, 5°26'"],
   [/^Mars passes .* of Jupiter/, "2026-11-15T02:42:00Z", 180, "1.2° north", "Mars and Jupiter 15/11/2026 02:42, 1°14'"],
-  [/^The Moon passes .* of Venus/, "2026-10-12T02:31:00Z", 60, "north", "the Moon and Venus 12/10/2026 02:31"]]) {
-  const [t, txt] = find(up.y26, re);
+  [/^The Moon passes .* of Venus/, "2026-10-12T02:31:00Z", 10, "north", "the Moon and Venus 12/10/2026 02:31"]]) {
+  const [t, txt] = find(up.y26, re, iso);
   ok(`Coming up: ${label}`, Math.abs(t - days(iso)) * 1440 <= mins && txt.includes(sep),
     isFinite(t) ? isoOf(t).slice(0, 16) + ", " + txt : "not listed");
 }
@@ -103,8 +105,19 @@ for (const [re, iso, mins, label] of [
   [/^The Leonid/, "2026-11-18T01:00:00Z", 180, "Leonids peak 18/11/2026 01:00"],
   [/^The Geminid/, "2026-12-14T14:00:00Z", 180, "Geminids peak 14/12/2026 14:00"],
   [/^The Ursid/, "2026-12-22T22:00:00Z", 180, "Ursids peak 22/12/2026 22:00"],
-  [/^The Quadrantid/, "2027-01-04T05:00:00Z", 180, "Quadrantids peak 04/01/2027 05:00"]]) {
-  const [t, txt] = find(up.y26, re);
+  [/^The Quadrantid/, "2027-01-04T05:00:00Z", 180, "Quadrantids peak 04/01/2027 05:00"],
+  // In-The-Sky gives the seasons to the minute, and the Earth's nearest and furthest points,
+  // which fall on a very flat curve, to the hour.
+  [/^The December solstice/, "2026-12-21T20:53:00Z", 10, "December solstice 21/12/2026 20:53"],
+  [/^The March equinox/, "2027-03-20T20:29:00Z", 10, "March equinox 20/03/2027 20:29"],
+  [/^The June solstice/, "2027-06-21T14:15:00Z", 10, "June solstice 21/06/2027 14:15"],
+  [/nearest to the Sun/, "2027-01-03T02:32:00Z", 240, "Earth nearest the Sun 03/01/2027 02:32"],
+  [/furthest from the Sun/, "2027-07-05T05:05:00Z", 240, "Earth furthest from the Sun 05/07/2027 05:05"],
+  // The Moon and the Pleiades: In-The-Sky times the closest approach, the page equal right
+  // ascension, which for a pass 1–2° wide comes within the hour.
+  [/^The Moon passes .* the Pleiades/, "2026-12-21T23:04:00Z", 60, "the Moon and the Pleiades 21/12/2026 23:04"],
+  [/^The Moon passes .* of Regulus/, "2026-10-07T03:32:00Z", 1440, "the Moon and Regulus 07/10/2026, seen in a dark sky"]]) {
+  const [t, txt] = find(up.y26, re, iso);
   ok(`Coming up: ${label}`, Math.abs(t - days(iso)) * 1440 <= mins,
     isFinite(t) ? isoOf(t).slice(0, 16) + ", " + txt : "not listed");
 }
@@ -179,6 +192,34 @@ await ctx.close();
   await ctx.close();
 }
 
+// 4c. The sky chart, the year ahead and calendar files.
+{
+  const { ctx, page } = await open();
+  const r = await page.evaluate(([d]) => {
+    const o = window.orreryTest; o.setObserver(51.5072, -0.1276);
+    const pol = o.starOf(2.530, 89.264, d), h = o.altAz(pol.ra, pol.dec, d);
+    const y = o.yearPlan(d), at = (n, lane, iso) => {
+      const k = Math.round(((Date.parse(iso) - Date.UTC(2000, 0, 1, 12)) / 864e5 - y.d0) / y.step);
+      return y.rows[n][lane][k];
+    };
+    const ev = o.upcoming(d, 180)[0], ics = o.icsFor(ev);
+    return { polaris: h.alt, merEve: at("Mercury", "ev", "2026-10-12T12:00Z"), merMorn: at("Mercury", "mo", "2026-11-20T12:00Z"),
+      marsEve: at("Mars", "ev", "2027-03-01T12:00Z"), venEve: at("Venus", "ev", "2026-10-20T12:00Z"),
+      ics, evT: ev.t };
+  }, [days("2026-10-02T21:00:00Z")]);
+  ok("sky chart: Polaris stands at the latitude, 51.5° up", Math.abs(r.polaris - 51.5) < 0.8, r.polaris.toFixed(2) + "°");
+  ok("year ahead: Mercury too low after dusk on 12/10/2026", r.merEve === false);
+  ok("year ahead: Mercury in the morning sky on 20/11/2026", r.merMorn === true);
+  ok("year ahead: Mars in the evening sky on 01/03/2027", r.marsEve === true);
+  ok("year ahead: Venus lost in twilight on 20/10/2026", r.venEve === false);
+  const start = (r.ics.match(/DTSTART:(\d{8}T\d{4})/) || [])[1];
+  const long = r.ics.split("\r\n").filter(l => Buffer.byteLength(l) > 75).length;
+  ok("calendar file starts at the event, folded to 75 octets",
+    /^BEGIN:VCALENDAR\r\n/.test(r.ics) && /END:VCALENDAR\r\n$/.test(r.ics) && start === isoOf(r.evT).replace(/[-:]/g, "").slice(0, 13) && long === 0,
+    (start || "no DTSTART") + (long ? ", " + long + " long lines" : ""));
+  await ctx.close();
+}
+
 // 5. A link restores the view.
 {
   const { ctx, page } = await open({}, "#date=2027-02-19&body=mars&tilt=40&scale=square-root");
@@ -228,12 +269,24 @@ for (const [d, want] of [["1700-06-01", true], ["2026-10-02", false], ["2100-01-
   ok("the table gives Saturn's best direction", /\d+° S\b/.test(best), best);
   ok("Tonight lists events coming up", evs > 0, evs + " events");
   if (evs) {
-    const want = await page.locator(".evt b").first().textContent();
+    const want = await page.locator(".evt b span").first().textContent();
     await page.locator(".evt").first().click();
     await page.waitForTimeout(300);
     const now = await page.evaluate(() => document.getElementById("datetxt").textContent);
     ok("an event sets the clock to its date", now === want, now + " vs " + want);
   }
+  const sky = await page.locator("#skynow svg circle").count();
+  ok("the sky chart draws stars and bodies", sky > 50, sky + " circles");
+  const more = await page.locator("#moreevents").count();
+  if (more) {
+    const before = await page.locator(".evt").count();
+    await page.locator("#moreevents").click(); await page.waitForTimeout(300);
+    const after = await page.locator(".evt").count();
+    ok("Show all lists the whole six months", after > before, before + " then " + after);
+  }
+  const [dl] = await Promise.all([page.waitForEvent("download", { timeout: 3000 }).catch(() => null),
+    page.locator("button.ics").first().click()]);
+  ok("Add to calendar saves an .ics file", !!dl && /\.ics$/.test(dl.suggestedFilename()), dl ? dl.suggestedFilename() : "no download");
   ok("no errors in the Tonight panel", errors.length === 0, errors.slice(0, 2).join("; "));
   await ctx.close();
 }
