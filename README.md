@@ -5,8 +5,7 @@ self-contained HTML file with no build step, no dependencies and no network call
 
 Planetary positions are computed from JPL's Keplerian elements, so the planets are where they
 actually are on the date shown. Orbits carry their real eccentricities and inclinations, bodies
-move by Kepler's second law, and the surfaces are rendered procedurally at load rather than
-pasted in as textures.
+move by Kepler's second law, and the surfaces are rendered procedurally at load.
 
 **[Live demo](https://martyn-gg.github.io/orrery/)**
 
@@ -19,7 +18,7 @@ pasted in as textures.
 - Real positions for any date from JPL's *Keplerian Elements for Approximate Positions of the
   Major Planets*, valid roughly 1800–2050 and good to a few arcminutes
 - True ellipses, with real eccentricity, perihelion direction and inclination, and positions from
-  solving Kepler's equation, so the sweep rate is genuinely non-uniform
+  solving Kepler's equation, so the sweep rate is non-uniform
 - A tilt control that lifts the ecliptic into three dimensions: Pluto's 17° orbit visibly rides
   above Neptune's, the Kuiper Belt becomes a torus, Halley runs retrograde at 162°
 - Three radial scales: compressed, square-root and true. Only *true* is geometrically exact;
@@ -46,7 +45,7 @@ pasted in as textures.
 ## Running it
 
 **Just open it.** `index.html` is completely self-contained. Double-click it on Windows, macOS
-or Linux and it works offline, forever. Nothing is fetched, nothing is tracked, no dependencies.
+or Linux and it works offline. It makes no network requests at all.
 
 **Install it as an app.** When served over HTTP(S) it registers as a progressive web app, so
 Chrome and Edge offer *Install*, Safari on macOS offers *Add to Dock*, and Android and iOS offer
@@ -76,23 +75,20 @@ under *Settings → Pages → Source → GitHub Actions*.
 
 ## What is computed and what is not
 
-Being clear about this matters more than looking clever.
-
 **Computed here:** planetary and dwarf-planet positions, distances, elongations, apparent sizes,
 oppositions and conjunctions, retrograde loops and stationary points, moon phase and distance,
 constellation membership, rising and setting geometry, and every surface texture.
 
 **Not computed here:** the eclipse table. Predicting a path of totality needs Besselian elements
 and a full lunar theory; the abridged theory driving the phase calendar is nowhere near precise
-enough. Those entries are published figures, credited in [DATA-SOURCES.md](DATA-SOURCES.md),
-rather than model output dressed up as prediction.
+enough. Those entries are published figures, credited in [DATA-SOURCES.md](DATA-SOURCES.md).
 
 **Known limits**, all stated in the notes at the foot of the page too:
 
 - Planetary perturbations are ignored, so wind the clock centuries away and the outer planets
   drift from reality
 - Ceres, Haumea, Makemake, Eris and the comets use fixed osculating elements with a mean motion,
-  good to a fraction of a degree in this era, not survey grade
+  good to a fraction of a degree in this era
 - The lunar theory carries the main perturbation terms and lands the principal phases within
   about half an hour
 - Star charts show principal pattern stars only, at J2000 positions
@@ -101,7 +97,7 @@ rather than model output dressed up as prediction.
 
 ## Verification
 
-The ephemeris was checked against published sky guides rather than assumed correct. For
+The ephemeris was checked against published sky guides. For
 12 August 2026 the model independently places Mars on the Taurus–Gemini border, Uranus beside the
 Pleiades, Mercury and Jupiter low in Cancer, Saturn and Neptune in Pisces, all as pre-dawn
 objects with Venus alone in the evening sky, matching the published guide on every planet.

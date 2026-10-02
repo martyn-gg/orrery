@@ -59,7 +59,7 @@ none is attempted.
 
 ## Verification sources
 
-Used to check the model's output rather than to produce it:
+Used to check the model's output:
 
 - Star Walk, *How to see the planetary alignment in August 2026*, which cross-checked the geocentric
   constellation of all seven planets for 12 August 2026
@@ -69,5 +69,5 @@ Used to check the model's output rather than to produce it:
 
 Nothing here is fitted to a modern numerical ephemeris such as DE440, and no planetary
 perturbations are modelled. For anything that matters (an observing plan, a telescope pointing,
-a research result) use JPL Horizons. This is a model built to be understood, not a source of
-truth.
+a research result) use JPL Horizons. This is a model built for understanding how the solar
+system moves.

@@ -359,7 +359,7 @@
 
 <footer>
   <p class="credit">Positions from JPL's Keplerian elements. Moon counts confirmed to April 2026.
-  Eclipse entries are published catalogue figures, not model output.
+  Eclipse entries come from published catalogues.
   <a href="https://github.com/martyn-gg/orrery">Source on GitHub</a> under the MIT licence.
   Made by <a href="https://martyn-gg.github.io/">Martyn Greville-Giddings</a>.</p>
   <details class="notes">
@@ -490,9 +490,9 @@ const MOONS={
 
 const BELTS=[
  {n:"Asteroid Belt",i:2.1,o:3.3,rings:9,inc:9,c:"#6e6650",kind:"belt",
-  note:"Roughly 2.1–3.3 AU, and thicker than it is usually drawn: typical inclinations run to about 10°, so it is a fat doughnut rather than a ring. Perhaps 1–2 million asteroids over a kilometre across, weighing about 3% of the Moon between them, a third of that being Ceres. The average gap between objects is millions of kilometres."},
+  note:"Roughly 2.1–3.3 AU, and thicker than it is usually drawn: typical inclinations run to about 10°, so it is a fat doughnut. Perhaps 1–2 million asteroids over a kilometre across, weighing about 3% of the Moon between them, a third of that being Ceres. The average gap between objects is millions of kilometres."},
  {n:"Kuiper Belt",i:30,o:50,rings:12,inc:14,c:"#4d5a7e",kind:"belt",
-  note:"Roughly 30–50 AU. Tilt the view and it becomes what it really is, a thick torus, not a ring, with inclinations commonly reaching 15° or more. It holds well over 100,000 bodies bigger than 100 km, including Pluto, Haumea and Makemake. Short-period comets such as Encke come from here; Halley comes from further out still."}
+  note:"Roughly 30–50 AU. Tilt the view and it becomes what it really is, a thick torus with inclinations commonly reaching 15° or more. It holds well over 100,000 bodies bigger than 100 km, including Pluto, Haumea and Makemake. Short-period comets such as Encke come from here; Halley comes from further out still."}
 ];
 
 const SUN={n:"The Sun",kind:"star",
@@ -998,7 +998,7 @@ const CON={
    ["Chertan",11.237,15.43,3.32],["Adhafera",10.278,23.42,3.44],["η Leo",10.122,16.76,3.50],
    ["μ Leo",9.879,26.01,3.88]],
    lines:[[0,7,2,6,8,4],[0,5,1,3,5],[2,3]],zod:true,
-   find:"Genuinely looks like a crouching lion. The head is the Sickle, a backwards question "+
+   find:"Looks like a crouching lion. The head is the Sickle, a backwards question "+
      "mark with Regulus as the full stop. To find it, take the two stars at the far end of the "+
      "Plough's bowl and follow them the *other* way from Polaris; they point down to Leo."},
  Virgo:{full:"Virgo, the Maiden",stars:[["Spica",13.420,-11.16,0.98],["Zavijava",11.845,1.76,3.61],
@@ -1175,7 +1175,7 @@ const CON={
  "Triangulum Australe":{full:"Triangulum Australe, the Southern Triangle",
    stars:[["Atria",16.811,-69.03,1.91],["β TrA",15.919,-63.43,2.85],["γ TrA",15.315,-68.68,2.87]],
    lines:[[0,1,2,0]],south:true,
-   find:"A neat, genuinely triangular little constellation south-east of Alpha Centauri, "+
+   find:"A neat, triangular little constellation south-east of Alpha Centauri, "+
      "brighter and more convincing than its northern namesake."},
  Grus:{full:"Grus, the Crane",stars:[["Alnair",22.137,-46.96,1.74],["Tiaki",22.711,-46.88,2.12],
    ["γ Gru",21.899,-37.36,3.00],["δ Gru",22.487,-43.50,3.97],["ε Gru",22.808,-51.32,3.49],
@@ -1998,7 +1998,7 @@ function eclipsePanel(){
     "<p class='legend'>Tap an entry to set the orrery to that date. Percentages are the fraction of "+
     "the Sun covered at maximum from that place; totality is only ever seen from inside a path a "+
     "few hundred kilometres wide, and a mile outside it you see nothing but a deep partial.</p>"+
-    "<p class='legend'>This table is <b>published data, not model output</b>. Dates, types and "+
+    "<p class='legend'>Everything in this table is <b>published data</b>. Dates, types and "+
     "durations come from the NASA and EclipseWise decade catalogues, and the UK figures for August "+
     "2026 from the Royal Observatory. Predicting a path of totality needs Besselian elements and a "+
     "full lunar theory; the abridged one driving the phase calendar here is nowhere near precise "+
@@ -2268,7 +2268,7 @@ function showConstellation(key){
       "<div id='asterlist'>"+c.aster.map((a,i)=>
         "<div class='ast' data-i='"+i+"'><b>"+a.n+"</b><span>"+a.d+"</span></div>").join("")+
       "</div><p class='legend'>Tap a name to pick it out on the chart. An asterism is a "+
-      "recognised pattern, not an official constellation; the boundaries drawn up by the IAU in "+
+      "recognised pattern with no official standing, and the boundaries drawn up by the IAU in "+
       "1930 often cut straight across them.</p>":"")+
     (WIDE.filter(w=>w.in.indexOf(key)>=0).length?"<div class='sub'>It also forms part of</div>"+
       WIDE.filter(w=>w.in.indexOf(key)>=0).map(w=>
@@ -2436,10 +2436,9 @@ function relayout(){
 }
 
 /* ================= animation ======================================== */
-/* The slider is logarithmic — 0.2 days per second at the bottom, 2000 at
+/* The slider is logarithmic: 0.2 days per second at the bottom, 2000 at
    the top. The default is stated as a rate and the slider position is
-   derived from it, so it is exactly 2.5 rather than whatever an integer
-   notch happens to land on. */
+   derived from it, so the clock starts at exactly this rate. */
 const DEFAULT_DPS=1;
 const dpsFromSlider=v=>0.2*Math.pow(10,v/25);
 const sliderFromDps=d=>25*Math.log10(d/0.2);
@@ -2831,24 +2830,24 @@ document.getElementById("foot").innerHTML=[
  "<b>Positions.</b> The eight planets and Pluto use JPL's Keplerian elements for approximate positions "+
  "(J2000 epoch with linear rates, valid roughly 1800–2050); they should be right to a few arcminutes. "+
  "Ceres, Haumea, Makemake, Eris and the two comets use fixed osculating elements with a mean motion, which is "+
- "good to a fraction of a degree over this era but is not survey grade. Perturbations between planets are ignored "+
+ "good to a fraction of a degree over this era. Perturbations between planets are ignored "+
  "entirely, so run the clock far enough and the outer planets will drift from reality.",
  "<b>Geometry.</b> Inclinations and nodes are real, so the tilt control shows the true three-dimensional "+
  "arrangement. Only in <i>true</i> scale is each drawn curve a geometrically exact ellipse with the Sun at a "+
  "focus; the compressed and square-root scales bend the radius to fit everything on one page, which flattens the "+
  "ellipses but keeps the ordering and the crossings honest. Planet sizes are not to scale in any mode; the "+
  "size comparison in the panel shows them properly.",
- "<b>Surfaces</b> are procedurally generated from spacecraft descriptions, "+
- "not photographic textures ("+renderMs+" ms to build). The panel portrait rotates in the correct direction, "+
- "Venus and Uranus backwards, but at a watchable rate rather than the true day length. Moons in the orbit "+
+ "<b>Surfaces</b> are procedurally generated from spacecraft descriptions "+
+ "("+renderMs+" ms to build). The panel portrait rotates in the correct direction, "+
+ "Venus and Uranus backwards, at a watchable rate; the true day length is in the numbers above it. Moons in the orbit "+
  "view are enlarged to be visible, but they keep their true orbital periods on the simulation clock, so "+
  "the speed control governs them too. The moon-system inset in the panel is the exception: it runs at a "+
  "steady, readable pace whatever the clock is doing. Their starting phases are arbitrary; only the rates "+
  "are real. Moon counts confirmed to April 2026.",
  "<b>The sky panel</b> converts each body's position into the view from Earth: elongation from the Sun, "+
  "whether it is a morning or evening object, and which constellation it falls in by the IAU boundaries. "+
- "That is why Ophiuchus appears on the outer ring and the spans are unequal: these are the real "+
- "constellations the ecliptic crosses, not the twelve equal signs. The outer ring reads heliocentric "+
+ "That is why Ophiuchus appears on the outer ring and the spans are unequal: these are the "+
+ "constellations the ecliptic actually crosses, at their true widths. The outer ring reads heliocentric "+
  "longitude, which is not the same as where you would see the body from Earth; use the panel for that.",
  "<b>Retrograde charts</b> plot the true geocentric direction to the body over the retrograde episode "+
  "nearest the date shown, with north up and longitude increasing to the left as it does in the sky; the "+
@@ -2856,17 +2855,17 @@ document.getElementById("foot").innerHTML=[
  "flat the latitude axis is stretched, and the caption says by how much.",
  "<b>Star charts</b> show principal "+
  "pattern stars only, at J2000 positions, projected on a tangent plane about the constellation's centre. "+
- "That is enough to recognise a shape in the sky, and no substitute for a real atlas. Rising, setting and altitude "+
+ "That is enough to recognise a shape in the sky; for anything finer, use a real atlas. Rising, setting and altitude "+
  "assume 51.5°N, roughly southern England. From the southern hemisphere the same patterns appear "+
  "upside down, and the circumpolar and never-rises notes swap over.",
  "<b>The Moon</b> uses an abridged "+
- "lunar theory accurate to roughly a third of a degree, which is fine for phase, age and constellation but not for "+
- "predicting eclipses. It carries the main perturbation terms and lands the principal phases "+
+ "lunar theory accurate to roughly a third of a degree, which is fine for phase, age and constellation. "+
+ "Eclipse prediction needs far more, so none is attempted. It carries the main perturbation terms and lands the principal phases "+
  "within about half an hour, which is ample for a calendar. Oppositions, conjunctions and greatest "+
  "elongations are found by scanning the elongation curve, so they are good to a day or so.",
  "<b>Eclipse data is not computed here.</b> Paths of totality need a full lunar theory and Besselian "+
  "elements, so those entries are published figures from eclipse catalogues and the Royal Observatory, "+
- "credited as such rather than dressed up as model output."
+ "credited as such."
 ].map(t=>"<p>"+t+"</p>").join("");
 })();
 </script>
