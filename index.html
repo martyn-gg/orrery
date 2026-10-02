@@ -1680,14 +1680,33 @@ function placeLabels(){
 function centreView(w){
   view.w=w; view.x=CX-w/2; view.y=CY-viewH()/2; applyView();
 }
+/* The opening view holds every planet's orbit, Pluto's, and the other
+   dwarf planets where they are now, with a margin for moons and labels.
+   It is never closer than the 1000-unit view the page has always opened
+   with, so on an ordinary window nothing changes; on a wide one the
+   height decides, and the view widens until nothing is cut off at the top
+   or bottom. While nobody has zoomed, panned or followed a body, resizing
+   the window fits it again. */
+let fitted=true;
+const orbitExt=[];
+function fitView(){
+  let hx=0, hy=0;
+  const take=(x,y)=>{ hx=Math.max(hx,Math.abs(x-CX)); hy=Math.max(hy,Math.abs(y-CY)); };
+  ALL.forEach((b,i)=>{ const e=orbitExt[i];
+    if(e&&(b.t==="planet"||b.n==="Pluto")){ take(e[0],e[1]); take(e[2],e[3]); } });
+  nodes.forEach(nd=>{ if(nd.pos&&nd.b.t!=="comet") take(nd.pos[0],nd.pos[1]); });
+  const m=0.88;
+  centreView(Math.max(1000, 2*hx/m, 2*hy/m/aspect()));
+  fitted=true;
+}
 function zoomAt(sx,sy,factor){
   const r=svg.getBoundingClientRect(), h=viewH();
   const ux=view.x+(sx-r.left)/r.width*view.w, uy=view.y+(sy-r.top)/r.height*h;
-  const nw=cl(view.w/factor,25,3000), f=nw/view.w;
+  const nw=cl(view.w/factor,25,3000), f=nw/view.w; fitted=false;
   view.x=ux-(ux-view.x)*f; view.y=uy-(uy-view.y)*f; view.w=nw;
   applyView();
 }
-window.addEventListener("resize",()=>applyView());
+window.addEventListener("resize",()=>{ if(fitted) fitView(); else applyView(); });
 stage.addEventListener("wheel",e=>{e.preventDefault();
   zoomAt(e.clientX,e.clientY,Math.exp(-e.deltaY*0.0016));},{passive:false});
 let drag=null;
@@ -1698,6 +1717,7 @@ stage.addEventListener("pointermove",e=>{
   const r=svg.getBoundingClientRect(), s=view.w/r.width;
   view.x-=(e.clientX-drag.x)*s; view.y-=(e.clientY-drag.y)*s;
   drag.moved+=Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y);
+  if(drag.moved>3) fitted=false;
   drag.x=e.clientX; drag.y=e.clientY; applyView();});
 let lastMoved=0;
 stage.addEventListener("pointerup",()=>{lastMoved=drag?drag.moved:0;drag=null;
@@ -1705,7 +1725,7 @@ stage.addEventListener("pointerup",()=>{lastMoved=drag?drag.moved:0;drag=null;
 stage.addEventListener("pointercancel",()=>{drag=null;stage.classList.remove("drag");});
 function focusOn(b){
   const nd=nodes.find(n=>n.b===b); if(!nd||!nd.pos) return;
-  view.w=cl((nd.sysOuter+40)*6,40,1400);
+  view.w=cl((nd.sysOuter+40)*6,40,1400); fitted=false;
   view.x=nd.pos[0]-view.w/2; view.y=nd.pos[1]-viewH()/2; applyView();
 }
 function moveTip(e){const r=stage.getBoundingClientRect();
@@ -1943,6 +1963,14 @@ function altOf(name,t){
   const q=eqOf(name,t), H=(gmst(t)+OBS_LON-q.ra)*D2R, la=OBS_LAT*D2R, d=q.dec*D2R;
   return Math.asin(Math.sin(la)*Math.sin(d)+Math.cos(la)*Math.cos(d)*Math.cos(H))*R2D;
 }
+/* azimuth in degrees, from north through east */
+function azOf(name,t){
+  const q=eqOf(name,t), H=(gmst(t)+OBS_LON-q.ra)*D2R, la=OBS_LAT*D2R, d=q.dec*D2R;
+  const A=Math.atan2(-Math.cos(d)*Math.sin(H), Math.sin(d)*Math.cos(la)-Math.cos(d)*Math.sin(la)*Math.cos(H))*R2D;
+  return (A+360)%360;
+}
+const POINTS=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+const compass=az=>POINTS[Math.round(az/22.5)%16];
 /* every crossing of altitude h0 between t0 and t1, sampled every ten
    minutes and narrowed to a few seconds                                */
 function crossings(name,t0,t1,h0){
@@ -2002,6 +2030,7 @@ function nightPlan(t){
       for(let t=a;t<=b;t+=5/1440){const h=altOf(name,t); if(!top||h>top.alt) top={t:t,alt:h};}
       const h=altOf(name,b); if(h>top.alt) top={t:b,alt:h};
       if(top.alt<5) top=null;
+      else top.az=azOf(name,top.t);
     }
     return {n:name, rise:best[0]>w0?best[0]:null, set:best[1]<w1?best[1]:null, top:top, night:!!top};
   });
@@ -2010,6 +2039,12 @@ function nightPlan(t){
 
 /* ---------- what is coming up -------------------------------------- */
 const wrap180=d=>((d%360)+540)%360-180;
+const METEORS=[
+  {n:"Quadrantid",l:283.15,dec:49.5,zhr:80}, {n:"Lyrid",l:32.32,dec:34,zhr:18},
+  {n:"Eta Aquariid",l:45.5,dec:-1,zhr:50}, {n:"Southern Delta Aquariid",l:128,dec:-16.4,zhr:25},
+  {n:"Perseid",l:140.0,dec:57.6,zhr:100}, {n:"Orionid",l:208,dec:15.5,zhr:20},
+  {n:"Leonid",l:235.27,dec:21.6,zhr:10}, {n:"Geminid",l:262.2,dec:32.2,zhr:150},
+  {n:"Ursid",l:270.7,dec:74.8,zhr:10}];
 let upcomingCache={key:null,list:[]};
 const lamSun=t=>{const e=vec(BODIES[2],t); return Math.atan2(-e.y,-e.x)*R2D;};
 /* every time f(t), an angle in degrees, passes through zero going either
@@ -2073,6 +2108,29 @@ function upcoming(t0,days){
     const A=five[i],B=five[j];
     pass(A.n,B.n,1,6,tt=>elong(A,tt).a>12&&elong(B,tt).a>12,s=>A.n+" passes "+s+" of "+B.n);
   }
+  /* a planet standing still against the stars, where its motion in
+     ecliptic longitude turns round: the start and end of retrograde */
+  five.forEach(b=>{
+    const rate=t=>wrap180(geo(b,t+0.25).lam-geo(b,t-0.25).lam);
+    crossings0(rate,t0,t0+days,1).forEach(tt=>{
+      const back=rate(tt+1)<0;
+      ev.push({t:tt,body:b.n,txt:back?
+        b.n+" stands still against the stars, then moves backwards (retrograde)":
+        b.n+" stands still against the stars, then returns to its usual eastward drift"});
+    });
+  });
+  /* meteor showers at their peak, by the Sun's longitude (J2000) from
+     the International Meteor Organization's working list, with the
+     Moon's light that night; a shower whose radiant never rises here is
+     left out */
+  METEORS.forEach(m=>{
+    if(neverRises(m.dec)) return;
+    crossings0(t=>wrap180(lamSun(t)-m.l),t0,t0+days,1).forEach(tt=>{
+      const lit=Math.round(moon(tt).lit*100);
+      ev.push({t:tt,body:null,txt:"The "+m.n+" meteor shower peaks, about "+m.zhr+
+        " an hour at best in a dark sky; the Moon is "+lit+"% lit"});
+    });
+  });
   ev.sort((a,b)=>a.t-b.t);
   upcomingCache={key,list:ev};
   return ev;
@@ -2105,7 +2163,7 @@ function nightHTML(){
     if(r.always!==undefined) return "<tr><td>"+r.n+"</td><td colspan='3'>"+
       (r.always?"above the horizon all day and night":"does not rise")+"</td></tr>";
     return "<tr"+(r.night?"":" class='day'")+"><td>"+r.n+"</td><td>"+cell(r.rise)+"</td><td>"+
-      (r.top?cell(r.top.t)+" <span class='alt'>"+Math.round(r.top.alt)+"°</span>":"–")+"</td><td>"+cell(r.set)+"</td></tr>";
+      (r.top?cell(r.top.t)+" <span class='alt'>"+Math.round(r.top.alt)+"° "+compass(r.top.az)+"</span>":"–")+"</td><td>"+cell(r.set)+"</td></tr>";
   }).join("");
   return "<div class='sub'>Rising and setting</div>"+
     "<p class='where'>From "+site.n+(site.custom?"":" ("+siteLabel(site.lat,site.lon)+")")+
@@ -2125,11 +2183,11 @@ function nightHTML(){
     "<table class='rs'><thead><tr><th></th><th>Rises</th><th>Best</th><th>Sets</th></tr></thead>"+
       "<tbody>"+rows+"</tbody></table>"+
     "<p class='legend'>Best is when it stands highest in a dark enough sky, from half an hour after "+
-      "sunset to half an hour before sunrise, with its altitude. Dimmed rows never climb 5° in that time. Times are good to a minute or two "+
+      "sunset to half an hour before sunrise, with its altitude and compass direction. Dimmed rows never climb 5° in that time. Times are good to a minute or two "+
       "for the planets and a few minutes for the Moon.</p>";
 }
 function eventsHTML(){
-  const ev=upcoming(T,180).slice(0,10);
+  const ev=upcoming(T,180).slice(0,12);
   if(!ev.length) return "";
   return "<div class='sub'>Coming up</div>"+ev.map(e=>
     "<div class='ecl evt' data-t='"+e.t+"'><b>"+fmtDate(e.t)+"</b><span class='where'>"+e.txt+
@@ -2705,11 +2763,13 @@ function buildMoons(o,moons){
 function relayout(){
   ALL.forEach((b,i)=>{
     const pts=orbitPts(b,T,b.e>0.6?420:240);
-    let d="";
+    let d=""; const ex=[1e9,1e9,-1e9,-1e9];
     for(let k=0;k<pts.length;k++){
       const p=proj(pts[k][0],pts[k][1],pts[k][2],pts[k][3]);
       d+=(k?"L":"M")+p[0].toFixed(1)+","+p[1].toFixed(1);
+      ex[0]=Math.min(ex[0],p[0]); ex[1]=Math.min(ex[1],p[1]); ex[2]=Math.max(ex[2],p[0]); ex[3]=Math.max(ex[3],p[1]);
     }
+    orbitExt[i]=ex;
     orbitEls[i].setAttribute("d",d+"Z");
   });
   beltRings.forEach(beltBasis);
@@ -2745,7 +2805,7 @@ document.getElementById("scale").addEventListener("click",e=>{
   mode=(mode+1)%MODES.length; e.target.textContent="Scale: "+MODES[mode].k;
   e.target.classList.toggle("on",mode!==0); relayout();});
 document.getElementById("zoomout").addEventListener("click",()=>{
-  centreView(1000);});
+  fitView();});
 document.getElementById("tglLabels").addEventListener("click",e=>{
   const on=labelsOn=e.target.classList.toggle("on"); placeLabels();
   nodes.forEach(nd=>nd.lab.style.display=on?"":"none");
@@ -2937,7 +2997,7 @@ function setField(on){
   document.getElementById("field").textContent=on?"Exit field mode":"Field mode";
   if(on&&curTab==="tonight") tonight();
   /* the stage had no size while hidden, so fit the view again once it shows */
-  if(!on) requestAnimationFrame(()=>centreView(1000));
+  if(!on) requestAnimationFrame(fitView);
 }
 document.getElementById("field").addEventListener("click",()=>
   setField(!document.body.classList.contains("field")));
@@ -3176,8 +3236,9 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 
-relayout(); centreView(1000); syncPicker();
+relayout(); syncPicker();
 nodes.forEach(nd=>{const v=vec(nd.b,T);nd.pos=proj(v.x,v.y,v.z,v.r);});
+fitView();
 /* on a phone, open straight into the field view — nobody wants to scroll
    past a control panel while standing in a dark garden */
 if(window.innerWidth<760){ setField(true); showTab("tonight"); }
@@ -3188,7 +3249,8 @@ if(new URLSearchParams(location.search).has("test"))      /* hooks for tools/che
     body:n=>BODIES.find(b=>b.n===n),
     getT:()=>T, setT:v=>{T=v;relayout();},
     setObserver:(la,lo)=>{OBS_LAT=la;OBS_LON=lo;}, screen:()=>nodes.map(n=>[n.b.n,n.pos[0],n.pos[1]]),
-    centre:()=>[CX,CY]};
+    centre:()=>[CX,CY], azOf, altOf, view:()=>({x:view.x,y:view.y,w:view.w,h:viewH()}),
+    fitted:()=>fitted, orbitExt:()=>orbitExt.slice()};
 
 /* Respect a stated preference for reduced motion: the model is just as
    useful held still, and constant orbital drift is exactly the sort of
@@ -3262,7 +3324,10 @@ document.getElementById("foot").innerHTML=[
  "hour of published times for the outer planets' oppositions and on the right date for the rest. "+
  "In the Coming up list, Venus or Mercury passing between the Earth and the Sun is timed by equal "+
  "ecliptic longitude, and the Moon or a planet passing a planet by equal right ascension, the "+
- "conventions almanacs use.",
+ "conventions almanacs use. A planet stands still where its motion in ecliptic longitude turns round. "+
+ "Meteor showers peak when the Sun reaches the longitude in the International Meteor Organization's "+
+ "working list, and the rate given is its zenithal hourly rate, the count under a dark sky with the "+
+ "radiant overhead; most people see fewer.",
  "<b>Eclipse data is not computed here.</b> Paths of totality need a full lunar theory and Besselian "+
  "elements, so those entries are published figures from eclipse catalogues and the Royal Observatory, "+
  "credited as such."

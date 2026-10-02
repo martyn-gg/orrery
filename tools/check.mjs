@@ -80,7 +80,7 @@ ok("New moon 12/08/2026", isoOf(ev.newMoon).startsWith("2026-08-12"), isoOf(ev.n
 // there are equal ecliptic longitude and the others equal right ascension, as the page does them.
 const up = await T(([a, b]) => {
   const o = window.orreryTest;
-  return { y26: o.upcoming(a, 60).map(e => [e.t, e.txt]), y32: o.upcoming(b, 40).map(e => [e.t, e.txt]) };
+  return { y26: o.upcoming(a, 120).map(e => [e.t, e.txt]), y32: o.upcoming(b, 40).map(e => [e.t, e.txt]) };
 }, [days("2026-10-01T00:00:00Z"), days("2032-10-25T00:00:00Z")]);
 const find = (list, re) => list.find(e => re.test(e[1])) || [NaN, ""];
 for (const [re, iso, mins, sep, label] of [
@@ -91,6 +91,21 @@ for (const [re, iso, mins, sep, label] of [
   [/^The Moon passes .* of Venus/, "2026-10-12T02:31:00Z", 60, "north", "the Moon and Venus 12/10/2026 02:31"]]) {
   const [t, txt] = find(up.y26, re);
   ok(`Coming up: ${label}`, Math.abs(t - days(iso)) * 1440 <= mins && txt.includes(sep),
+    isFinite(t) ? isoOf(t).slice(0, 16) + ", " + txt : "not listed");
+}
+// Stationary points and meteor shower peaks, also from In-The-Sky.org. A shower's peak is
+// broad and its published time is an estimate, so three hours either way passes.
+for (const [re, iso, mins, label] of [
+  [/^Saturn stands still.*eastward/, "2026-12-11T00:00:00Z", 120, "Saturn ends retrograde 11/12/2026 00:00"],
+  [/^Jupiter stands still.*backwards/, "2026-12-13T00:47:00Z", 120, "Jupiter starts retrograde 13/12/2026 00:47"],
+  [/^Mars stands still.*backwards/, "2027-01-10T12:58:00Z", 120, "Mars starts retrograde 10/01/2027 12:58"],
+  [/^The Orionid/, "2026-10-21T18:00:00Z", 180, "Orionids peak 21/10/2026 18:00"],
+  [/^The Leonid/, "2026-11-18T01:00:00Z", 180, "Leonids peak 18/11/2026 01:00"],
+  [/^The Geminid/, "2026-12-14T14:00:00Z", 180, "Geminids peak 14/12/2026 14:00"],
+  [/^The Ursid/, "2026-12-22T22:00:00Z", 180, "Ursids peak 22/12/2026 22:00"],
+  [/^The Quadrantid/, "2027-01-04T05:00:00Z", 180, "Quadrantids peak 04/01/2027 05:00"]]) {
+  const [t, txt] = find(up.y26, re);
+  ok(`Coming up: ${label}`, Math.abs(t - days(iso)) * 1440 <= mins,
     isFinite(t) ? isoOf(t).slice(0, 16) + ", " + txt : "not listed");
 }
 {
@@ -119,6 +134,15 @@ for (const [n, up, iso, tol, label] of [
   const m = at(n, up, iso);
   ok(`London 02/10/2026: ${label}`, m <= tol, isFinite(m) ? m.toFixed(1) + " min out" : "no crossing");
 }
+// Saturn, two days from opposition, is highest when it crosses the meridian, due south.
+{
+  const sat = await T(([d0]) => {
+    const o = window.orreryTest, r = o.nightPlan(d0).rows.find(x => x.n === "Saturn");
+    return r && r.top ? { az: o.azOf("Saturn", r.top.t), t: r.top.t } : null;
+  }, [days("2026-10-02T12:00:00Z")]);
+  ok("London 02/10/2026: Saturn best due south", !!sat && Math.abs(sat.az - 180) < 3,
+    sat ? sat.az.toFixed(1) + "° at " + isoOf(sat.t).slice(11, 16) + " UTC" : "no best time");
+}
 
 // 4. Seen from the north, planets go anticlockwise and Halley clockwise.
 const motion = await T(() => {
@@ -133,6 +157,27 @@ const motion = await T(() => {
 const wrong = motion.filter(([n, d]) => (n === "Halley" ? d > 0 : d < 0)).map(m => m[0]);
 ok("planets travel anticlockwise, Halley clockwise", wrong.length === 0, wrong.join(", "));
 await ctx.close();
+
+// 4b. The opening view fits the window. On an ordinary one it is the 1000-unit view the page
+// has always used; on a 21:9 one it widens until every planet's orbit is inside, and resizing
+// fits it again unless the visitor has zoomed.
+{
+  const { ctx, page } = await open();
+  const v = await page.evaluate(() => window.orreryTest.view());
+  ok("opening view unchanged at 1440 × 900", Math.abs(v.w - 1000) < 0.5, v.w.toFixed(1) + " wide");
+  await page.setViewportSize({ width: 2560, height: 1080 }); await page.waitForTimeout(300);
+  const f = await page.evaluate(() => {
+    const o = window.orreryTest, v = o.view(), e = o.orbitExt().slice(0, 10);
+    return { v, inside: e.every(x => x[0] >= v.x && x[1] >= v.y && x[2] <= v.x + v.w && x[3] <= v.y + v.h) };
+  });
+  ok("21:9 window shows every planet's orbit and Pluto's", f.inside, f.v.w.toFixed(0) + " × " + f.v.h.toFixed(0));
+  await page.mouse.move(600, 500); await page.mouse.wheel(0, -400); await page.waitForTimeout(200);
+  const w0 = await page.evaluate(() => window.orreryTest.view().w);
+  await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(300);
+  const w1 = await page.evaluate(() => window.orreryTest.view().w);
+  ok("resizing keeps a view the visitor zoomed", Math.abs(w1 - w0) < 0.5, w0.toFixed(0) + " then " + w1.toFixed(0));
+  await ctx.close();
+}
 
 // 5. A link restores the view.
 {
@@ -179,6 +224,8 @@ for (const [d, want] of [["1700-06-01", true], ["2026-10-02", false], ["2100-01-
   const rows = await page.locator("table.rs tbody tr").count();
   const evs = await page.locator(".evt").count();
   ok("Tonight shows a rising and setting table", rows === 6, rows + " rows");
+  const best = await page.locator("table.rs tbody tr").filter({ hasText: "Saturn" }).locator("td").nth(2).textContent();
+  ok("the table gives Saturn's best direction", /\d+° S\b/.test(best), best);
   ok("Tonight lists events coming up", evs > 0, evs + " events");
   if (evs) {
     const want = await page.locator(".evt b").first().textContent();
