@@ -42,6 +42,9 @@ move by Kepler's second law, and the surfaces are rendered procedurally at load.
 - The sky now: an all-sky chart for your place and the time on the clock, with the
   constellation figures, the ecliptic, the Moon in its phase and turned towards the Sun, the
   planets and, by day, the Sun. Tap the Moon or a planet for its details
+- `?embed=sky` shows the sky chart on its own, for putting in another page: the sky now if
+  it is dark, 22:00 tonight if not, from the visitor's own place if they have set one. The
+  front page at greville-giddings.me uses it
 - Each part of the Tonight panel folds away, and the panel remembers which parts you closed
 - With the clock stopped, Today (Now in field mode) keeps the orrery on the real time. Phones open
   this way, in field mode

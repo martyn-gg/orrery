@@ -170,13 +170,17 @@
   .pill.solar{background:#3a2c12;color:#e8b866}
   .pill.lunar{background:#1c2440;color:#93a8e0}
   .where{display:block;font-size:11.5px;line-height:1.5;color:#9aa3c2;margin-bottom:5px}
-  svg.sky{display:block;width:100%;max-width:340px;margin:2px auto 0}
-  svg.sky .card{fill:var(--muted);font-size:11px;text-anchor:middle}
-  svg.sky .fig{stroke:#3a4677;stroke-width:.8}
-  svg.sky .eclp{fill:none;stroke:#b08a4a;stroke-width:1;stroke-dasharray:1.5 3;opacity:.8}
-  svg.sky .hit{fill:transparent;cursor:pointer}
-  svg.sky .sn{fill:#8f96b3;font-size:8.5px}
-  svg.sky .bn{fill:#e8ebf5;font-size:10px;paint-order:stroke;stroke:#070a17;stroke-width:2.5px}
+  svg.allsky{display:block;width:100%;max-width:340px;margin:2px auto 0}
+  /* ?embed=sky: the sky chart alone, for showing inside another page */
+  html.embed,html.embed body{background:transparent;height:auto;overflow:hidden}
+  body.embed>*:not(#embedsky){display:none!important}
+  #embedsky svg.allsky{max-width:none;margin:0;cursor:pointer}
+  svg.allsky .card{fill:var(--muted);font-size:11px;text-anchor:middle}
+  svg.allsky .fig{stroke:#3a4677;stroke-width:.8}
+  svg.allsky .eclp{fill:none;stroke:#b08a4a;stroke-width:1;stroke-dasharray:1.5 3;opacity:.8}
+  svg.allsky .hit{fill:transparent;cursor:pointer}
+  svg.allsky .sn{fill:#8f96b3;font-size:8.5px}
+  svg.allsky .bn{fill:#e8ebf5;font-size:10px;paint-order:stroke;stroke:#070a17;stroke-width:2.5px}
   svg.year{display:block;width:100%;margin:4px 0 6px}
   svg.year .ym{fill:var(--muted);font-size:9.5px}
   svg.year .yp{fill:#c3cae0;font-size:11px}
@@ -286,6 +290,7 @@
 </style>
 </head>
 <body>
+<div id="embedsky" hidden></div>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
   <filter id="redonly"><feColorMatrix type="matrix" values="
     0.42 0.72 0.20 0 0
@@ -2383,7 +2388,7 @@ function skySVG(t){
   const d=new Date(J2000+t*86400000);
   const when=("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2)+" on "+
     d.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
-  return "<svg class='sky' viewBox='-172 -172 344 344' role='img' aria-label='The whole sky seen from "+
+  return "<svg class='allsky' viewBox='-172 -172 344 344' role='img' aria-label='The whole sky seen from "+
     SITES[HEMI].n+" at "+when+"'>"+g+"</svg>"+
     "<p class='legend'>From "+SITES[HEMI].n+" at "+when+(sunA>-0.833?", in daylight, so the stars are dimmed":"")+(running?
       " (the clock is running, so the sky turns with it)":"")+". Hold it overhead with north "+
@@ -3547,15 +3552,46 @@ function frame(now){
 relayout(); syncPicker();
 nodes.forEach(nd=>{const v=vec(nd.b,T);nd.pos=proj(v.x,v.y,v.z,v.r);});
 fitView();
+/* ?embed=sky shows the sky chart on its own, for greville-giddings.me.
+   It uses the visitor's own location if they have set one here (the
+   pages share an origin), shows the sky now if it is dark and at 22:00
+   tonight if not, redraws every minute and runs no animation. A tap
+   opens the full orrery on that body in the top window, and the page
+   that holds it is told where and when the chart is for. */
+const EMBED=new URLSearchParams(location.search).get("embed")==="sky";
+function skyMoment(){
+  const t=nowDays();
+  if(altOf("Sun",t)<=-6) return {t:t,now:true};
+  const d=new Date(); d.setHours(22,0,0,0); if(d.getTime()<Date.now()) d.setDate(d.getDate()+1);
+  return {t:(d.getTime()-J2000)/86400000,now:false};
+}
+function renderEmbed(){
+  const m=skyMoment(), holder=document.getElementById("embedsky");
+  T=m.t; holder.innerHTML=skySVG(T);
+  const d=new Date(J2000+T*86400000), hm=("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
+  if(window.parent!==window) window.parent.postMessage({type:"orrery-sky",place:SITES[HEMI].n,
+    custom:!!SITES[HEMI].custom,when:hm,now:m.now},location.origin);
+}
+if(EMBED){
+  document.documentElement.classList.add("embed"); document.body.classList.add("embed");
+  running=false;
+  const holder=document.getElementById("embedsky"); holder.hidden=false;
+  holder.onclick=e=>{
+    const h=e.target.closest&&e.target.closest(".hit"), n=h&&h.dataset.body;
+    const to=new URL(n?(n==="Moon"?"./#tab=moon":"./#body="+slug(n==="Sun"?"the-sun":n)):"./",location.href).href;
+    try{ window.top.location.href=to; }catch(err){ window.open(to,"_blank"); }
+  };
+  renderEmbed(); setInterval(renderEmbed,60000);
+}
 /* on a phone, open straight into the field view — nobody wants to scroll
    past a control panel while standing in a dark garden */
-if(window.innerWidth<760){
+else if(window.innerWidth<760){
   running=false; document.getElementById("play").textContent="Play";
   T=nowDays(); liveT=T;
   setField(true); showTab("tonight");
 }
 else select(BODIES[2]);
-applyHash(location.hash);
+if(!EMBED) applyHash(location.hash);
 if(new URLSearchParams(location.search).has("test"))      /* hooks for tools/check.mjs */
   window.orreryTest={nextExtreme,nextPhase,crossings,nightPlan,upcoming,elong,
     body:n=>BODIES.find(b=>b.n===n),
@@ -3573,7 +3609,7 @@ if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matc
   trailLayer.style.display="none";
   document.getElementById("tglTrails").classList.remove("on");
 }
-requestAnimationFrame(frame);
+if(!EMBED) requestAnimationFrame(frame);
 
 /* Progressive-web-app plumbing is attached only when the page is served
    over http(s). Opened straight off the disk it stays a single, entirely

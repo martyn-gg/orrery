@@ -19,7 +19,7 @@ const server = http.createServer(async (req, res) => {
   const path = normalize(decodeURIComponent(new URL(req.url, "http://x").pathname)).replace(/^(\.\.[/\\])+/, "");
   try {
     const body = await readFile(join(ROOT, path === "/" ? "index.html" : path));
-    res.writeHead(200, { "content-type": TYPES[extname(path)] || "application/octet-stream" });
+    res.writeHead(200, { "content-type": TYPES[extname(path === "/" ? "index.html" : path)] || "application/octet-stream" });
     res.end(body);
   } catch { res.writeHead(404); res.end(); }
 });
@@ -292,6 +292,28 @@ await ctx.close();
   const r = await page.evaluate(() => ({ play: document.getElementById("play").textContent,
     lag: Math.abs(window.orreryTest.getT() - (Date.now() - Date.UTC(2000, 0, 1, 12)) / 864e5) * 1440 }));
   ok("a phone opens on now with the clock stopped", r.play === "Play" && r.lag < 2, r.play + ", " + r.lag.toFixed(1) + " min from now");
+  await ctx.close();
+}
+
+// 4f. ?embed=sky: the sky chart alone, as greville-giddings.me shows it.
+{
+  const ctx = await browser.newContext({ viewport: { width: 340, height: 340 }, timezoneId: "Europe/London" });
+  const page = await ctx.newPage(); const errors = [];
+  page.on("pageerror", e => errors.push(String(e)));
+  await page.goto(BASE + "?embed=sky"); await page.waitForTimeout(1000);
+  const r = await page.evaluate(() => ({ circles: document.querySelectorAll("#embedsky svg.allsky circle").length,
+    stage: document.getElementById("stage").getClientRects().length,
+    panel: document.querySelector("aside").getClientRects().length }));
+  ok("embed draws the sky chart and nothing else", r.circles > 50 && r.stage === 0 && r.panel === 0,
+    r.circles + " circles, stage boxes " + r.stage + ", panel boxes " + r.panel);
+  const hit = page.locator("#embedsky .hit").first();
+  if (await hit.count()) {
+    const n = await hit.getAttribute("data-body");
+    await hit.click({ force: true });
+    await page.waitForURL(/#/, { timeout: 5000 }).catch(() => {});
+    ok("a tap in the embed opens the full orrery on that body", /[#&](body=|tab=moon)/.test(page.url()), n + " -> " + page.url().replace(/^.*\//, "/"));
+  }
+  ok("no errors in the embed", errors.length === 0, errors.slice(0, 2).join("; "));
   await ctx.close();
 }
 
