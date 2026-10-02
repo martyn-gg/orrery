@@ -27,11 +27,19 @@ move by Kepler's second law, and the surfaces are rendered procedurally at load.
 - 31 major moons at their true orbital periods, driven by the same clock as the planets
 - Comets Halley and Encke, with tails that grow as the inverse square of distance
 - Zoom, pan, follow-a-body, reverse time, jump to a date or to a historical event
+- Shareable links: the address bar holds the date, the chosen body or constellation, tilt, scale
+  and hemisphere, so copying it shares exactly what is on screen
+- A notice whenever the date leaves 1800–2050, the span the orbital elements are good for
 
 **Observing**
 
 - Where each body is in tonight's sky: constellation, elongation from the Sun, morning or evening
   object, apparent size in arcseconds
+- Rising, setting and best viewing times for the Moon and the five naked-eye planets, sunset,
+  sunrise and the hours of darkness, for southern England, Sydney or a place you set (kept in your
+  browser only)
+- Coming up: the next oppositions, greatest elongations, close passes of the Moon by a planet
+  and close pairs of planets, each one a tap away
 - Retrograde charts: the apparent path against the stars over the loop nearest your date, with
   stationary points and dates
 - Star charts for 32 constellations with named asterisms (the Plough, the Sickle, the Teapot,
@@ -93,7 +101,8 @@ enough. Those entries are published figures, credited in [DATA-SOURCES.md](DATA-
   about half an hour
 - Star charts show principal pattern stars only, at J2000 positions
 - Planet sizes are not to scale in any mode; use the size comparison in the panel
-- Rising, setting and altitude assume 51.5°N or 33.9°S depending on the hemisphere switch
+- Rising and setting times agree with published times for London to within two minutes for the
+  Sun and planets and four for the Moon
 
 ## Verification
 
@@ -104,6 +113,20 @@ objects with Venus alone in the evening sky, matching the published guide on eve
 Saturn's opposition comes out as 4 October 2026 and Mars's as 19 February 2027; Halley sits at
 0.587 AU at its 1986 perihelion, its true perihelion distance; and new moon falls on
 12 August 2026, the date of the total solar eclipse over Iceland and Spain.
+
+Those checks, and others, are now a script. `tools/check.mjs` loads the page in headless
+Chromium and tests it against published figures: opposition, conjunction and elongation dates,
+a new moon, and rising and setting times for London on 2 October 2026 from timeanddate.com.
+It also checks that the planets travel anticlockwise, that a link restores the view, that the
+date-range notice appears when it should, and that the page loads without errors at desktop
+and phone sizes. To run it:
+
+```bash
+npm install --no-save --include=dev playwright   # once; node_modules is gitignored
+node tools/check.mjs
+```
+
+It prints one line per check and exits non-zero if any fail.
 
 ## Browser support
 

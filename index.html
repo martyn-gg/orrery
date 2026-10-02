@@ -167,6 +167,23 @@
   .pill.solar{background:#3a2c12;color:#e8b866}
   .pill.lunar{background:#1c2440;color:#93a8e0}
   .where{display:block;font-size:11.5px;line-height:1.5;color:#9aa3c2;margin-bottom:5px}
+  table.rs{width:100%;border-collapse:collapse;font-size:12.5px;margin:4px 0 8px;font-variant-numeric:tabular-nums}
+  table.rs th{font-weight:400;color:var(--muted);text-align:left;font-size:11px;padding:0 0 4px}
+  table.rs td{padding:4px 0;border-bottom:1px solid #151a30;color:#c3cae0;white-space:nowrap}
+  table.rs td:first-child{color:var(--ink);padding-right:8px}
+  table.rs tr.day td{color:#5f6685}
+  table.rs .alt{color:var(--muted);font-size:11px}
+  button.linkish{background:none;border:0;padding:0;color:var(--accent);font-size:inherit;cursor:pointer}
+  button.linkish:hover{text-decoration:underline}
+  #siteform{background:#0a0e1e;border:1px solid #1d2340;border-radius:9px;padding:10px 12px;margin:0 0 10px}
+  .siterow{display:flex;flex-wrap:wrap;gap:8px}
+  .siterow label{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--muted);flex:1 1 110px}
+  .siterow input{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:7px;
+    padding:6px 8px;font-size:13px;font-family:inherit;width:100%}
+  .siterow button{font-size:12px;padding:5px 10px}
+  .range{position:absolute;left:12px;top:12px;max-width:360px;background:#2a2112;border:1px solid #6b5426;
+    color:#f0d9a8;font-size:12.5px;line-height:1.5;border-radius:8px;padding:8px 11px;pointer-events:none}
+  .range[hidden]{display:none}
   table.loc{width:100%;border-collapse:collapse;font-size:11.5px}
   table.loc td{padding:2px 0;border-bottom:1px solid #151a30;color:#c3cae0}
   table.loc td:last-child{text-align:right;color:#9aa3c2}
@@ -320,6 +337,7 @@
         <button id="hemi">View: northern</button>
         <button id="field">Field mode</button>
         <button id="night">Night vision</button>
+        <button id="copylink">Copy link to this view</button>
       </div>
     </div>
   </details>
@@ -342,6 +360,8 @@
   <div class="stage" id="stage">
     <svg id="sky" viewBox="0 0 1000 1000" role="img" aria-label="Three-dimensional model of the solar system"></svg>
     <div class="tip" id="tip"></div>
+    <div class="range" id="range" role="status" hidden>Planet positions are reliable between 1800
+    and 2050. Outside those years they drift, and the error grows the further you go.</div>
   </div>
   <aside id="side">
     <nav class="tabs" id="tabs">
@@ -1448,9 +1468,10 @@ const ECLIPSES=[
     "most-watched eclipse in history."}
 ];
 
-let OBS_LAT=51.5;                         // southern England; flips with the hemisphere switch
+let OBS_LAT=51.5, OBS_LON=-0.13;          // southern England; flips with the hemisphere switch
 let HEMI=0;                               // 0 = northern view, 1 = southern
-const SITES=[{n:"southern England",lat:51.5},{n:"Sydney",lat:-33.9}];
+const SITES_DEFAULT=[{n:"southern England",lat:51.5,lon:-0.13},{n:"Sydney",lat:-33.9,lon:151.2}];
+const SITES=SITES_DEFAULT.map(s=>Object.assign({},s));
 const OBLIQ=23.4393*D2R;
 function ecl2eq(lam,bet){                 // radians in, {ra hours, dec deg}
   const sl=Math.sin(lam),cb=Math.cos(bet),sb=Math.sin(bet);
@@ -1580,6 +1601,7 @@ const fmtP=P=>P<1?(P*365.25).toFixed(1)+" days":(P<100?P.toFixed(2)+" years":P.t
 
 /* ================= view: zoom + pan ================================= */
 const stage=document.getElementById("stage"), tip=document.getElementById("tip");
+const rangeNote=document.getElementById("range");
 /* the viewBox follows the shape of the stage, so an ultrawide window gets
    a wide view rather than a square one letterboxed inside it            */
 let view={x:0,y:0,w:1000};
@@ -1781,7 +1803,7 @@ function select(o){
   selected=o; moonAnim=[]; portrait=null; portraitBody=null;
   nodes.forEach(nd=>nd.halo.style.opacity=nd.b===o?0.9:0);
   if(o&&o.n&&!o.kind&&typeof markTab==="function") markTab("planets",o.n);
-  if(!o){ tonight(); return; }
+  if(!o){ if(typeof markTab==="function") markTab("tonight"); tonight(); return; }
   if(o.kind==="star"){
     panel.innerHTML="<canvas id='portrait' width='"+PSIZE+"' height='"+PSIZE+"'></canvas>"+
       "<h2><span class='swatch' style='background:#fdb813'></span>"+o.n+"</h2>"+
@@ -1884,6 +1906,7 @@ function tonight(){
         :(r.el>150?"near opposition, up all night":
           (r.east?"evening sky":"morning sky")+", "+Math.round(r.el)+"° from the Sun"))+
       ", in "+r.con+". "+r.sz.toFixed(1)+"″ across.</p>").join("")+
+    nightHTML()+eventsHTML()+
     "<div class='sub'>Dwarf planets</div>"+
     "<p class='tonight'>"+rows.filter(r=>r.t==="dwarf").map(r=>r.n+" in "+r.con).join(", ")+
       ". All far too faint for the naked eye; Ceres and Pluto are within reach of a good "+
@@ -1895,7 +1918,235 @@ function tonight(){
     "them 30° wide.</p>";
   const holder=document.getElementById("moonpic");
   if(holder) holder.appendChild(drawPhase(m.el,64));
+  tonightDay=localMidnight(T);
+  wireNight();
 }
+let tonightDay=null;
+
+/* ---------- rising, setting and the night ahead ----------------------
+   Altitudes come from the same geocentric positions as everything else,
+   turned into right ascension and declination and then into altitude
+   for the observer's latitude and longitude at Greenwich sidereal time.
+   Rise and set are where the altitude crosses the standard horizon:
+   -0.83° for the Sun (refraction plus its radius), +0.13° for the Moon
+   (its parallax lifts the horizon) and -0.57° for a planet.            */
+const H0={Sun:-0.833,Moon:0.125};
+function gmst(t){ return ((280.46061837+360.98564736629*t)%360+360)%360; }
+function eqOf(name,t){
+  let lam,bet;
+  if(name==="Sun"){ const e=vec(BODIES[2],t); lam=Math.atan2(-e.y,-e.x); bet=0; }
+  else if(name==="Moon"){ const m=moon(t); lam=m.lam*D2R; bet=m.bet*D2R; }
+  else { const g=geo(BODIES.find(b=>b.n===name),t); lam=g.lam*D2R; bet=g.bet*D2R; }
+  const q=ecl2eq(lam,bet); return {ra:q.ra*15, dec:q.dec};
+}
+function altOf(name,t){
+  const q=eqOf(name,t), H=(gmst(t)+OBS_LON-q.ra)*D2R, la=OBS_LAT*D2R, d=q.dec*D2R;
+  return Math.asin(Math.sin(la)*Math.sin(d)+Math.cos(la)*Math.cos(d)*Math.cos(H))*R2D;
+}
+/* every crossing of altitude h0 between t0 and t1, sampled every ten
+   minutes and narrowed to a few seconds                                */
+function crossings(name,t0,t1,h0){
+  if(h0===undefined) h0=H0[name]===undefined?-0.567:H0[name];
+  const step=10/1440, out=[]; let prev=altOf(name,t0)-h0;
+  for(let t=t0+step;t<=t1+1e-9;t+=step){
+    const cur=altOf(name,t)-h0;
+    if((prev<0)!==(cur<0)){
+      let a=t-step,b=t,fa=prev;
+      for(let k=0;k<22;k++){const m=(a+b)/2,fm=altOf(name,m)-h0; if((fa<0)===(fm<0)){a=m;fa=fm;}else b=m;}
+      out.push({t:(a+b)/2,up:cur>=0});
+    }
+    prev=cur;
+  }
+  return {list:out, upAtStart:altOf(name,t0)>=h0};
+}
+/* midnight at the start of the date on show, by the observer's own
+   longitude (mean solar time), so the night belongs to the place chosen
+   even when the browser's clock is somewhere else                      */
+function localMidnight(t){
+  const f=OBS_LON/360;
+  return Math.floor(t+0.5+f)-0.5-f;
+}
+/* clock times are shown in the browser's own time zone, with the day
+   named when it is not the day of the date on show                     */
+function fmtClock(t,day0){
+  const d=new Date(J2000+t*86400000), ref=new Date(J2000+(day0+0.5)*86400000);
+  const hm=("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
+  return d.toDateString()===ref.toDateString()?hm:d.toLocaleDateString("en-GB",{weekday:"short"})+" "+hm;
+}
+/* The night runs from sunset on the date shown to sunrise the next
+   morning. For each body, pick the spell above the horizon that
+   overlaps that night most; a body that is only up by day gets the
+   spell that contains midday.                                          */
+function nightPlan(t){
+  const day0=localMidnight(t), w0=day0-0.5, w1=day0+2;
+  const sun=crossings("Sun",w0,w1);
+  const sunset=sun.list.find(c=>!c.up&&c.t>day0+0.4), sunrise=sunset&&sun.list.find(c=>c.up&&c.t>sunset.t);
+  const dark=crossings("Sun",day0+0.4,day0+1.6,-12);
+  const darkStart=dark.list.find(c=>!c.up), darkEnd=darkStart&&dark.list.find(c=>c.up&&c.t>darkStart.t);
+  const n0=sunset?sunset.t:day0+0.75, n1=sunrise?sunrise.t:day0+1.25;
+  const rows=["Moon","Mercury","Venus","Mars","Jupiter","Saturn"].map(name=>{
+    const c=crossings(name,w0,w1);
+    if(!c.list.length) return {n:name, always:c.upAtStart};
+    const spells=[]; let start=c.upAtStart?w0:null;
+    c.list.forEach(x=>{ if(x.up) start=x.t; else if(start!==null){spells.push([start,x.t]); start=null;} });
+    if(start!==null) spells.push([start,w1]);
+    const ov=s=>Math.max(0,Math.min(s[1],n1)-Math.max(s[0],n0));
+    let best=null;
+    spells.forEach(s=>{ if(ov(s)>0&&(!best||ov(s)>ov(best))) best=s; });
+    if(!best) spells.forEach(s=>{ const mid=day0+0.5, d=s[0]<=mid&&s[1]>=mid?0:Math.min(Math.abs(s[0]-mid),Math.abs(s[1]-mid));
+      if(!best||d<best.d){best=s;best.d=d;} });
+    /* best = highest point from half an hour after sunset to half an hour
+       before sunrise, if it gets 5° up                                  */
+    let top=null; const a=Math.max(best[0],n0+1/48), b=Math.min(best[1],n1-1/48);
+    if(b>a){
+      for(let t=a;t<=b;t+=5/1440){const h=altOf(name,t); if(!top||h>top.alt) top={t:t,alt:h};}
+      const h=altOf(name,b); if(h>top.alt) top={t:b,alt:h};
+      if(top.alt<5) top=null;
+    }
+    return {n:name, rise:best[0]>w0?best[0]:null, set:best[1]<w1?best[1]:null, top:top, night:!!top};
+  });
+  return {day0, sunset, sunrise, darkStart, darkEnd, rows};
+}
+
+/* ---------- what is coming up -------------------------------------- */
+const wrap180=d=>((d%360)+540)%360-180;
+let upcomingCache={key:null,list:[]};
+function upcoming(t0,days){
+  const key=Math.floor(t0)+"|"+days;
+  if(upcomingCache.key===key) return upcomingCache.list;
+  const ev=[], five=["Mercury","Venus","Mars","Jupiter","Saturn"].map(n=>BODIES.find(b=>b.n===n));
+  const lamSun=t=>{const e=vec(BODIES[2],t); return Math.atan2(-e.y,-e.x)*R2D;};
+  five.forEach(b=>{
+    let from=t0;
+    for(let k=0;k<3;k++){
+      const x=nextExtreme(b,true,from); if(!x||x.t>t0+days) break;
+      if(b.a<1){
+        const east=wrap180(geo(b,x.t).lam-lamSun(x.t))>0;
+        ev.push({t:x.t,body:b.n,txt:b.n+" at greatest elongation, "+x.v.toFixed(0)+"° "+
+          (east?"east of the Sun, in the evening sky":"west of the Sun, in the morning sky")});
+      } else ev.push({t:x.t,body:b.n,txt:b.n+" at opposition, up all night and at its brightest"});
+      from=x.t+5;
+    }
+  });
+  /* the Moon passing a planet: geocentric longitudes equal */
+  five.forEach(b=>{
+    const f=t=>wrap180(moon(t).lam-geo(b,t).lam);
+    let prev=f(t0);
+    for(let t=t0+0.25;t<=t0+days;t+=0.25){
+      const cur=f(t);
+      if(prev<0&&cur>=0&&cur-prev<90){
+        let a=t-0.25,c=t; for(let k=0;k<24;k++){const m=(a+c)/2; if(f(m)<0)a=m; else c=m;}
+        const tt=(a+c)/2, sep=moon(tt).bet-geo(b,tt).bet, el=elong(b,tt).a;
+        if(Math.abs(sep)<5&&el>15) ev.push({t:tt,body:b.n,txt:"The Moon passes "+Math.abs(sep).toFixed(1)+"° "+
+          (sep>0?"north":"south")+" of "+b.n});
+      }
+      prev=cur;
+    }
+  });
+  /* two planets passing: equal longitude and close in latitude */
+  for(let i=0;i<five.length;i++) for(let j=i+1;j<five.length;j++){
+    const A=five[i],B=five[j], f=t=>wrap180(geo(A,t).lam-geo(B,t).lam);
+    let prev=f(t0);
+    for(let t=t0+1;t<=t0+days;t+=1){
+      const cur=f(t);
+      if((prev<0)!==(cur<0)&&Math.abs(cur-prev)<30){
+        let a=t-1,c=t,fa=prev; for(let k=0;k<24;k++){const m=(a+c)/2,fm=f(m); if((fa<0)===(fm<0)){a=m;fa=fm;}else c=m;}
+        const tt=(a+c)/2, sep=geo(A,tt).bet-geo(B,tt).bet;
+        if(Math.abs(sep)<3&&elong(A,tt).a>12&&elong(B,tt).a>12)
+          ev.push({t:tt,body:A.n,txt:A.n+" passes "+Math.abs(sep).toFixed(1)+"° "+(sep>0?"north":"south")+" of "+B.n});
+      }
+      prev=cur;
+    }
+  }
+  ev.sort((a,b)=>a.t-b.t);
+  upcomingCache={key,list:ev};
+  return ev;
+}
+
+/* ---------- the observer's own location ------------------------------
+   Kept in this browser only. It is never put in the address bar or sent
+   anywhere.                                                            */
+const LOCKEY="orrery-location";
+function siteLabel(lat,lon){
+  return Math.abs(lat).toFixed(1)+"°"+(lat>=0?"N":"S")+" "+Math.abs(lon).toFixed(1)+"°"+(lon>=0?"E":"W");
+}
+function setSite(lat,lon,save){
+  const h=lat<0?1:0;
+  SITES[h]={n:siteLabel(lat,lon),lat:lat,lon:lon,custom:true};
+  HEMI=h; OBS_LAT=lat; OBS_LON=lon;
+  if(save){ try{ localStorage.setItem(LOCKEY,JSON.stringify({lat:lat,lon:lon})); }catch(e){} }
+  upcomingCache.key=null;
+}
+function clearSite(){
+  try{ localStorage.removeItem(LOCKEY); }catch(e){}
+  SITES[0]=Object.assign({},SITES_DEFAULT[0]); SITES[1]=Object.assign({},SITES_DEFAULT[1]);
+  OBS_LAT=SITES[HEMI].lat; OBS_LON=SITES[HEMI].lon;
+}
+function nightHTML(){
+  const np=nightPlan(T), d0=np.day0, tz=Intl.DateTimeFormat().resolvedOptions().timeZone||"local time";
+  const site=SITES[HEMI];
+  const cell=x=>x?fmtClock(x,d0):"–";
+  const rows=np.rows.map(r=>{
+    if(r.always!==undefined) return "<tr><td>"+r.n+"</td><td colspan='3'>"+
+      (r.always?"above the horizon all day and night":"does not rise")+"</td></tr>";
+    return "<tr"+(r.night?"":" class='day'")+"><td>"+r.n+"</td><td>"+cell(r.rise)+"</td><td>"+
+      (r.top?cell(r.top.t)+" <span class='alt'>"+Math.round(r.top.alt)+"°</span>":"–")+"</td><td>"+cell(r.set)+"</td></tr>";
+  }).join("");
+  return "<div class='sub'>Rising and setting</div>"+
+    "<p class='where'>From "+site.n+(site.custom?"":" ("+siteLabel(site.lat,site.lon)+")")+
+      ", times in "+tz.replace(/_/g," ")+". <button class='linkish' id='sitechange'>Change</button></p>"+
+    "<div id='siteform' hidden>"+
+      "<div class='siterow'><label>Latitude <input id='sitelat' inputmode='decimal' value='"+site.lat+"'></label>"+
+      "<label>Longitude <input id='sitelon' inputmode='decimal' value='"+site.lon+"'></label></div>"+
+      "<p class='legend' style='margin:4px 0 8px'>Degrees, with south and west as minus. Stored in this "+
+      "browser only.</p>"+
+      "<div class='siterow'><button id='sitesave'>Use this place</button><button id='sitegeo'>Find me</button>"+
+      (site.custom?"<button id='sitereset'>Back to the default</button>":"")+"</div>"+
+      "<p class='legend' id='sitemsg' style='margin:6px 0 0'></p></div>"+
+    "<p class='tonight'>"+(np.sunset?"Sun sets "+cell(np.sunset.t):"The Sun does not set")+
+      (np.sunrise?" and rises "+cell(np.sunrise.t)+".":".")+
+      (np.darkStart&&np.darkEnd?" The sky is dark, with the Sun 12° or more below the horizon, from "+
+        cell(np.darkStart.t)+" to "+cell(np.darkEnd.t)+".":"")+"</p>"+
+    "<table class='rs'><thead><tr><th></th><th>Rises</th><th>Best</th><th>Sets</th></tr></thead>"+
+      "<tbody>"+rows+"</tbody></table>"+
+    "<p class='legend'>Best is when it stands highest in a dark enough sky, from half an hour after "+
+      "sunset to half an hour before sunrise, with its altitude. Dimmed rows never climb 5° in that time. Times are good to a minute or two "+
+      "for the planets and a few minutes for the Moon.</p>";
+}
+function eventsHTML(){
+  const ev=upcoming(T,180).slice(0,7);
+  if(!ev.length) return "";
+  return "<div class='sub'>Coming up</div>"+ev.map(e=>
+    "<div class='ecl evt' data-t='"+e.t+"'><b>"+fmtDate(e.t)+"</b><span class='where'>"+e.txt+
+    "</span></div>").join("")+
+    "<p class='legend'>Tap an entry to set the orrery to that night.</p>";
+}
+function wireNight(){
+  const ch=document.getElementById("sitechange"), form=document.getElementById("siteform");
+  if(ch) ch.onclick=()=>{ form.hidden=!form.hidden; };
+  const msg=t=>{const m=document.getElementById("sitemsg"); if(m) m.textContent=t;};
+  const save=document.getElementById("sitesave");
+  if(save) save.onclick=()=>{
+    const la=parseFloat(document.getElementById("sitelat").value), lo=parseFloat(document.getElementById("sitelon").value);
+    if(!(Math.abs(la)<=90)||!(Math.abs(lo)<=180)){ msg("Latitude runs from -90 to 90 and longitude from -180 to 180."); return; }
+    setSite(la,lo,true); afterSiteChange();
+  };
+  const geoB=document.getElementById("sitegeo");
+  if(geoB) geoB.onclick=()=>{
+    if(!navigator.geolocation){ msg("This browser cannot report a location."); return; }
+    msg("Asking the browser for your location…");
+    navigator.geolocation.getCurrentPosition(p=>{
+      setSite(+p.coords.latitude.toFixed(2),+p.coords.longitude.toFixed(2),true); afterSiteChange();
+    },()=>msg("The browser did not share a location. Type it in instead."),{timeout:15000});
+  };
+  const rs=document.getElementById("sitereset");
+  if(rs) rs.onclick=()=>{ clearSite(); afterSiteChange(); };
+  [...panel.querySelectorAll(".evt")].forEach(c=>c.onclick=()=>{
+    T=+c.dataset.t; running=false; document.getElementById("play").textContent="Play";
+    relayout(); syncPicker(); tonight();
+  });
+}
+function afterSiteChange(){ syncHemi(); buildConList(); tonight(); }
 
 /* ---------- moon phase calendar ------------------------------------ */
 let calMonth=null;
@@ -2072,11 +2323,12 @@ const PHASES=[[22.5,"New Moon"],[67.5,"waxing crescent"],[112.5,"First Quarter"]
   [157.5,"waxing gibbous"],[202.5,"Full Moon"],[247.5,"waning gibbous"],
   [292.5,"Last Quarter"],[337.5,"waning crescent"],[360.1,"New Moon"]];
 const phaseName=el=>{for(const p of PHASES) if(el<p[0]) return p[1]; return "New Moon";};
-function nextPhase(target){                            /* 0 = new, 180 = full */
+function nextPhase(target,from){                       /* 0 = new, 180 = full */
+  const t0=from===undefined?T:from;
   const f=t=>{let d=moon(t).el-target; while(d>180)d-=360; while(d<-180)d+=360; return d;};
-  let t=T, prev=f(t);
+  let t=t0, prev=f(t);
   for(let i=1;i<=40;i++){
-    const tt=T+i, cur=f(tt);
+    const tt=t0+i, cur=f(tt);
     if(prev<0&&cur>=0){
       let a=tt-1,b=tt;
       for(let k=0;k<26;k++){const m=(a+b)/2; if(f(m)<0) a=m; else b=m;}
@@ -2105,10 +2357,10 @@ function elong(b,t){
   const sr=Math.hypot(e.x,e.y,e.z);
   return {a:Math.acos(cl((dx*-e.x+dy*-e.y+dz*-e.z)/(D*sr),-1,1))*R2D, D:D};
 }
-function nextExtreme(b,wantMax){
-  const syn=synodic(b), step=Math.max(0.5,syn/400);
+function nextExtreme(b,wantMax,from){
+  const t0=from===undefined?T:from, syn=synodic(b), step=Math.max(0.5,syn/400);
   let best=null;
-  for(let t=T;t<T+syn*1.05;t+=step){
+  for(let t=t0;t<t0+syn*1.05;t+=step){
     const a=elong(b,t-step).a, c=elong(b,t).a, d=elong(b,t+step).a;
     if(wantMax? (c>=a&&c>=d) : (c<=a&&c<=d)){ best={t:t,v:c}; break; }
   }
@@ -2589,12 +2841,15 @@ function focusHint(b){
   const nd=nodes.find(n=>n.b===b);
   if(nd&&nd.halo){nd.halo.style.opacity=0.9;}
 }
-document.getElementById("hemi").addEventListener("click",e=>{
-  HEMI=1-HEMI; OBS_LAT=SITES[HEMI].lat;
-  e.target.textContent="View: "+(HEMI?"southern":"northern");
-  e.target.classList.toggle("on",HEMI===1);
+function syncHemi(){
+  const hb=document.getElementById("hemi");
+  hb.textContent="View: "+(HEMI?"southern":"northern"); hb.classList.toggle("on",HEMI===1);
   const fh=document.getElementById("fieldhemi");
   if(fh){fh.textContent=HEMI?"S":"N"; fh.classList.toggle("on",HEMI===1);}
+}
+document.getElementById("hemi").addEventListener("click",e=>{
+  HEMI=1-HEMI; OBS_LAT=SITES[HEMI].lat; OBS_LON=SITES[HEMI].lon;
+  syncHemi();
   buildConList();
   const cur=conpick.value;
   if(panel.querySelector("#chart")&&cur) showConstellation(cur);
@@ -2649,6 +2904,7 @@ function showTab(t){
 function markTab(t,name){
   curTab=t;
   [...tabs.children].forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
+  if(t==="tonight") tabpick.innerHTML="";
   if(name){ planetpick.value=name;
     const c=tabpick.querySelector("select"); if(c) c.value=name; }
 }
@@ -2665,6 +2921,8 @@ function setField(on){
   document.getElementById("field").classList.toggle("on",on);
   document.getElementById("field").textContent=on?"Exit field mode":"Field mode";
   if(on&&curTab==="tonight") tonight();
+  /* the stage had no size while hidden, so fit the view again once it shows */
+  if(!on) requestAnimationFrame(()=>centreView(1000));
 }
 document.getElementById("field").addEventListener("click",()=>
   setField(!document.body.classList.contains("field")));
@@ -2706,6 +2964,82 @@ window.addEventListener("keydown",e=>{
   else if(e.key==="ArrowLeft"){T-=e.shiftKey?30:1; relayout();}
 });
 
+/* ---------- the view in the address bar ------------------------------
+   Date (only when the clock is stopped, so a running orrery shares as
+   "today"), the chosen body, tilt, scale, hemisphere, direction and the
+   panel tab. Defaults are left out to keep links short. The observer's
+   location is never put here.                                          */
+const SCALE_KEYS=["compressed","square-root","true"];
+const slug=n=>n.toLowerCase().replace(/\s+/g,"-");
+function isoDate(t){
+  const d=new Date(J2000+t*86400000), y=d.getUTCFullYear();
+  return (y<0?"-":"")+("000"+Math.abs(y)).slice(-4)+"-"+("0"+(d.getUTCMonth()+1)).slice(-2)+"-"+("0"+d.getUTCDate()).slice(-2);
+}
+function viewHash(){
+  const p=new URLSearchParams();
+  if(!running) p.set("date",isoDate(T));
+  if(selected&&selected.n&&curTab==="planets") p.set("body",slug(selected.n));
+  if(curTab==="stars"){ p.set("tab","stars"); if(conpick.value) p.set("con",slug(conpick.value)); }
+  else if(curTab==="moon"||curTab==="ecl") p.set("tab",curTab);
+  if(tiltDeg!==22) p.set("tilt",String(tiltDeg));
+  if(mode) p.set("scale",SCALE_KEYS[mode]);
+  if(HEMI) p.set("view","south");
+  else if(SITES[1].custom) p.set("view","north");
+  if(dir<0) p.set("direction","backward");
+  const q=p.toString(); return q?"#"+q:"";
+}
+let lastHash=null;
+function writeHash(){
+  const h=viewHash(); if(h===lastHash) return; lastHash=h;
+  try{ history.replaceState(null,"",location.pathname+location.search+h); }catch(e){}
+}
+function applyHash(h){
+  const p=new URLSearchParams((h||"").replace(/^#/,""));
+  if(![...p.keys()].length) return false;
+  /* the hemisphere changes only when the link names one, so a visitor's own
+     southern location is not overridden by a link that leaves it out   */
+  if(p.has("view")&&(p.get("view")==="south")!==(HEMI===1)) document.getElementById("hemi").click();
+  const sc=SCALE_KEYS.indexOf(p.get("scale")||"compressed");
+  if(sc>=0&&sc!==mode){ mode=sc; const b=document.getElementById("scale");
+    b.textContent="Scale: "+MODES[mode].k; b.classList.toggle("on",mode!==0); }
+  const tl=parseFloat(p.get("tilt"));
+  tiltDeg=isFinite(tl)?cl(Math.round(tl),0,72):22; document.getElementById("tilt").value=tiltDeg;
+  if((p.get("direction")==="backward")!==(dir<0)) document.getElementById("reverse").click();
+  const d=p.get("date");
+  if(d&&/^-?\d{1,4}-\d{2}-\d{2}$/.test(d)){
+    const neg=d[0]==="-", q=d.replace(/^-/,"").split("-"), u=new Date(Date.UTC(2000,+q[1]-1,+q[2],12));
+    u.setUTCFullYear((neg?-1:1)*+q[0]);
+    T=(u.getTime()-J2000)/86400000;
+    running=false; document.getElementById("play").textContent="Play";
+  }
+  relayout(); syncPicker();
+  const tab=p.get("tab"), body=p.get("body");
+  if(tab==="stars"){
+    const c=Object.keys(CON).find(k=>slug(k)===p.get("con")); if(c) conpick.value=c;
+    showTab("stars");
+  } else if(tab==="moon"||tab==="ecl") showTab(tab);
+  else if(body){
+    const b=body==="the-sun"?SUN:ALL.concat(BELTS).find(x=>slug(x.n)===body);
+    if(b){ select(b); if(b.n&&!b.kind) markTab("planets",b.n); }
+  } else if(!selected||curTab==="tonight") showTab("tonight");
+  lastHash=null; writeHash();
+  return true;
+}
+window.addEventListener("hashchange",()=>applyHash(location.hash));
+document.getElementById("copylink").addEventListener("click",e=>{
+  writeHash();
+  const btn=e.currentTarget, done=t=>{btn.textContent=t; setTimeout(()=>btn.textContent="Copy link to this view",1600);};
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(location.href).then(()=>done("Link copied"),()=>done("Copy the address bar"));
+  else done("Copy the address bar");
+});
+
+/* the stored location, if this browser has one */
+try{
+  const s=JSON.parse(localStorage.getItem(LOCKEY)||"null");
+  if(s&&Math.abs(s.lat)<=90&&Math.abs(s.lon)<=180){ setSite(s.lat,s.lon,false); syncHemi(); buildConList(); }
+}catch(e){}
+
 const order=[];
 function frame(now){
   const dt=Math.min(0.05,(now-last)/1000); last=now; frameN++;
@@ -2714,6 +3048,14 @@ function frame(now){
   if(frameN%15===0){
     syncPicker();
     const ov=document.getElementById("ovdate"); if(ov) ov.textContent=fmtDate(T);
+    const yr=new Date(J2000+T*86400000).getUTCFullYear();
+    rangeNote.hidden=yr>=1800&&yr<=2050;
+    writeHash();
+    /* keep the Tonight panel's times on the night being shown */
+    if(!selected&&curTab==="tonight"&&tonightDay!==null&&localMidnight(T)!==tonightDay){
+      const f=document.getElementById("siteform");
+      if(!f||f.hidden) tonight();
+    }
   }
 
   let earth=null;
@@ -2825,6 +3167,13 @@ nodes.forEach(nd=>{const v=vec(nd.b,T);nd.pos=proj(v.x,v.y,v.z,v.r);});
    past a control panel while standing in a dark garden */
 if(window.innerWidth<760){ setField(true); showTab("tonight"); }
 else select(BODIES[2]);
+applyHash(location.hash);
+if(new URLSearchParams(location.search).has("test"))      /* hooks for tools/check.mjs */
+  window.orreryTest={nextExtreme,nextPhase,crossings,nightPlan,upcoming,elong,
+    body:n=>BODIES.find(b=>b.n===n),
+    getT:()=>T, setT:v=>{T=v;relayout();},
+    setObserver:(la,lo)=>{OBS_LAT=la;OBS_LON=lo;}, screen:()=>nodes.map(n=>[n.b.n,n.pos[0],n.pos[1]]),
+    centre:()=>[CX,CY]};
 
 /* Respect a stated preference for reduced motion: the model is just as
    useful held still, and constant orbital drift is exactly the sort of
@@ -2879,13 +3228,23 @@ document.getElementById("foot").innerHTML=[
  "<b>Star charts</b> show principal "+
  "pattern stars only, at J2000 positions, projected on a tangent plane about the constellation's centre. "+
  "That is enough to recognise a shape in the sky; for anything finer, use a real atlas. Rising, setting and altitude "+
- "assume 51.5°N, roughly southern England. From the southern hemisphere the same patterns appear "+
+ "are for southern England (51.5°N) or Sydney (33.9°S), or for your own place once you set one in the Tonight "+
+ "panel. From the southern hemisphere the same patterns appear "+
  "upside down, and the circumpolar and never-rises notes swap over.",
+ "<b>Rising and setting</b> times turn each body's position into altitude for the place chosen, using "+
+ "Greenwich sidereal time, and find where it crosses the horizon: 0.83° below it for the Sun, which allows "+
+ "for refraction and the Sun's radius, 0.57° below for a planet and 0.13° above for the Moon, whose "+
+ "parallax lifts it. Against published times for London they agree to within two minutes for the Sun "+
+ "and planets and four for the Moon. The place you set is kept in this browser and never sent anywhere.",
+ "<b>Links.</b> The address bar carries the date (when the clock is stopped), the chosen body or "+
+ "constellation, tilt, scale, hemisphere and direction, so copying it shares this view. Your location "+
+ "is left out.",
  "<b>The Moon</b> uses an abridged "+
  "lunar theory accurate to roughly a third of a degree, which is fine for phase, age and constellation. "+
  "Eclipse prediction needs far more, so none is attempted. It carries the main perturbation terms and lands the principal phases "+
  "within about half an hour, which is ample for a calendar. Oppositions, conjunctions and greatest "+
- "elongations are found by scanning the elongation curve, so they are good to a day or so.",
+ "elongations are the turning points of the elongation curve, found to the minute; they land within an "+
+ "hour of published times for the outer planets' oppositions and on the right date for the rest.",
  "<b>Eclipse data is not computed here.</b> Paths of totality need a full lunar theory and Besselian "+
  "elements, so those entries are published figures from eclipse catalogues and the Royal Observatory, "+
  "credited as such."
