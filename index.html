@@ -2103,6 +2103,19 @@ function nextExtreme(b,wantMax){
     const a=elong(b,t-step).a, c=elong(b,t).a, d=elong(b,t+step).a;
     if(wantMax? (c>=a&&c>=d) : (c<=a&&c<=d)){ best={t:t,v:c}; break; }
   }
+  /* The scan only brackets the extreme to within a step (two days for
+     Mars), and which grid point wins depends on when the scan started, so
+     the reported date could move by a day as the clock ran. Narrow the
+     bracket down to about a minute. */
+  if(best){
+    let lo=best.t-step, hi=best.t+step;
+    const f=x=>wantMax?elong(b,x).a:-elong(b,x).a;
+    for(let i=0;i<40;i++){
+      const m1=lo+(hi-lo)/3, m2=hi-(hi-lo)/3;
+      if(f(m1)<f(m2)) lo=m1; else hi=m2;
+    }
+    best.t=(lo+hi)/2; best.v=elong(b,best.t).a;
+  }
   return best;
 }
 const arcsec=(dkm,DAU)=>206264.8*dkm/(DAU*149597870.7);
