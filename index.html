@@ -173,6 +173,8 @@
   svg.sky{display:block;width:100%;max-width:340px;margin:2px auto 0}
   svg.sky .card{fill:var(--muted);font-size:11px;text-anchor:middle}
   svg.sky .fig{stroke:#3a4677;stroke-width:.8}
+  svg.sky .eclp{fill:none;stroke:#b08a4a;stroke-width:1;stroke-dasharray:1.5 3;opacity:.8}
+  svg.sky .hit{fill:transparent;cursor:pointer}
   svg.sky .sn{fill:#8f96b3;font-size:8.5px}
   svg.sky .bn{fill:#e8ebf5;font-size:10px;paint-order:stroke;stroke:#070a17;stroke-width:2.5px}
   svg.year{display:block;width:100%;margin:4px 0 6px}
@@ -217,6 +219,12 @@
   dt{color:var(--muted)}
   dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
   aside p.note{font-size:12.5px;line-height:1.55;color:#b9c0d8;margin:0 0 14px}
+  details.sec>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px}
+  details.sec>summary::-webkit-details-marker{display:none}
+  details.sec>summary::before{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;
+    border-bottom:1.5px solid currentColor;transform:rotate(-45deg);transition:transform .15s;margin:0 3px 0 1px}
+  details.sec[open]>summary::before{transform:rotate(45deg)}
+  details.sec>summary:hover{color:var(--ink)}
   .sub{font-size:11px;text-transform:uppercase;letter-spacing:1.1px;color:var(--muted);
     margin:16px 0 8px;border-top:1px solid var(--line);padding-top:12px}
   svg#sizecmp,svg#moons{display:block;width:100%;height:auto}
@@ -292,8 +300,9 @@
     <h1>Orrery</h1>
   </div>
   <div class="fieldbar">
+    <button id="fieldnow" aria-label="Set the clock to now">Now</button>
     <button id="fieldnight">Night vision</button>
-    <button id="fieldhemi">N</button>
+    <button id="fieldhemi" aria-label="Switch hemisphere">N</button>
     <button id="fieldexit">Full view</button>
   </div>
   <p>The planets where they actually are on the date shown, computed from JPL's orbital elements.
@@ -1535,7 +1544,7 @@ function buildZodiac(){
     t.textContent=z[1]; g.appendChild(t);
     g.style.cursor="pointer"; g.style.pointerEvents="auto";
     g.addEventListener("click",ev=>{ev.stopPropagation();
-      document.getElementById("conpick").value=z[1]; showConstellation(z[1]);});
+      document.getElementById("conpick").value=z[1]; showTab("stars");});
     zodiac.appendChild(g);
     zodLabels.push({g:g,x:pm[0],y:pm[1]});
   });
@@ -1843,7 +1852,7 @@ function select(o){
   if(o&&o.n&&!o.kind&&typeof markTab==="function") markTab("planets",o.n);
   if(!o){ if(typeof markTab==="function") markTab("tonight"); tonight(); return; }
   if(o.kind==="star"){
-    panel.innerHTML="<canvas id='portrait' width='"+PSIZE+"' height='"+PSIZE+"'></canvas>"+
+    panel.innerHTML="<canvas id='portrait' width='"+PSIZE+"' height='"+PSIZE+"' role='img' aria-label='A turning globe of the body'></canvas>"+
       "<h2><span class='swatch' style='background:#fdb813'></span>"+o.n+"</h2>"+
       "<div class='kind'>G-type main-sequence star</div>"+
       "<dl>"+o.facts.map(f=>"<dt>"+f[0]+"</dt><dd>"+f[1]+"</dd>").join("")+"</dl>"+
@@ -1862,7 +1871,7 @@ function select(o){
   }
   const moons=MOONS[o.n]||[], e=el(o,T), q=e.a*(1-e.e), Q=e.a*(1+e.e);
   panel.innerHTML=
-    "<canvas id='portrait' width='"+PSIZE+"' height='"+PSIZE+"'></canvas>"+
+    "<canvas id='portrait' width='"+PSIZE+"' height='"+PSIZE+"' role='img' aria-label='A turning globe of the body'></canvas>"+
     "<h2><span class='swatch' style='background:"+o.c+"'></span>"+o.n+"</h2>"+
     "<div class='kind'>"+(o.t==="dwarf"?"Dwarf planet":(o.t==="comet"?"Comet":"Planet"))+"</div>"+
     "<dl>"+
@@ -1885,12 +1894,12 @@ function select(o){
       "<p class='legend' id='oppinfo' style='margin:-6px 0 14px'></p>")+
     "<p class='note'>"+o.note+"</p>"+
     (o.n==="Earth"?"":"<div class='sub'>Apparent path against the stars</div>"+
-      "<svg id='retro' viewBox='0 0 280 120'></svg><p class='legend' id='retrocap'></p>")+
-    (o.d>200&&o.n!=="Earth"?"<div class='sub'>Size against Earth</div><svg id='sizecmp' viewBox='0 0 280 92'></svg>":"")+
+      "<svg id='retro' viewBox='0 0 280 120' role='img' aria-label='The planet&#39;s path against the stars over its nearest retrograde loop'></svg><p class='legend' id='retrocap'></p>")+
+    (o.d>200&&o.n!=="Earth"?"<div class='sub'>Size against Earth</div><svg id='sizecmp' viewBox='0 0 280 92' role='img' aria-label='The body&#39;s size against the Earth&#39;s'></svg>":"")+
     (moons.length
       ? "<div class='sub'>"+(o.moons>moons.length?moons.length+" major moons (of "+o.moons+")"
           :"Moon"+(moons.length>1?"s":""))+"</div>"+
-        "<svg id='moons' viewBox='0 0 280 280'></svg>"+
+        "<svg id='moons' viewBox='0 0 280 280' role='img' aria-label='The larger moons in their orbits'></svg>"+
         "<table class='moons'>"+moons.map(m=>"<tr><td><span class='swatch' style='background:"+
           m.c+"'></span>"+m.n+"</td><td>"+(m.P<1?(m.P*24).toFixed(1)+" h":m.P.toFixed(2)+" d")+
           "</td></tr>").join("")+"</table>"
@@ -1933,34 +1942,52 @@ function tonight(){
   const naked=rows.filter(r=>r.t==="planet");
   const good=naked.filter(r=>r.vis);
   panel.innerHTML=
-    "<div class='kind' style='margin-top:4px'>Tonight, <span id='ovdate'>"+fmtDate(T)+"</span></div>"+
+    "<div class='kind' style='margin-top:4px'>Tonight, <span id='ovdate'>"+fmtDate(localMidnight(T)+0.5)+"</span></div>"+
     "<div class='moonrow'><span id='moonpic'></span><div><b>"+phaseName(m.el)+"</b><br>"+
       Math.round(m.lit*100)+"% lit &middot; "+m.age.toFixed(1)+" days old<br>"+
       "in "+constellation(m.lam)+" &middot; "+Math.round(m.dist).toLocaleString("en-GB")+" km"+
       (nw?"<br>New moon "+fmtDate(nw):"")+(nf?" &middot; full "+fmtDate(nf):"")+"</div></div>"+
-    "<div class='sub' style='margin-top:0'>The sky now</div><div id='skynow'>"+skySVG(T)+"</div>"+
-    "<div class='sub'>Planets, best first</div>"+
+    sec("sky","The sky now","<div id='skynow'>"+skySVG(T)+"</div>")+
+    sec("planets","Planets, best first",
     naked.map(r=>"<p class='tonight'><b>"+r.n+"</b>: "+
       (r.el<10?"too close to the Sun to see"
         :(r.el>150?"near opposition, up all night":
           (r.east?"evening sky":"morning sky")+", "+Math.round(r.el)+"° from the Sun"))+
-      ", in "+r.con+". "+r.sz.toFixed(1)+"″ across.</p>").join("")+
-    nightHTML()+eventsHTML()+yearHTML()+
-    "<div class='sub'>Dwarf planets</div>"+
+      ", in "+r.con+". "+r.sz.toFixed(1)+"″ across.</p>").join(""))+
+    sec("rising","Rising and setting",nightHTML())+
+    (ev10()?sec("coming","Coming up",eventsHTML()):"")+
+    sec("year","The year ahead",yearHTML())+
+    sec("dwarfs","Dwarf planets",
     "<p class='tonight'>"+rows.filter(r=>r.t==="dwarf").map(r=>r.n+" in "+r.con).join(", ")+
       ". All far too faint for the naked eye; Ceres and Pluto are within reach of a good "+
-      "telescope, the rest are not.</p>"+
-    "<p class='legend' style='margin-top:14px'>"+good.length+" of the eight planets are far enough "+
+      "telescope, the rest are not.</p>")+
+    "<p class='legend' style='margin-top:14px'>"+good.length+" of the seven planets besides the Earth are far enough "+
     "from the Sun to be worth looking for. Click any body for its numbers and its retrograde loop, "+
-    "or use the constellation lookup for star charts. The outer ring is ecliptic longitude, marked "+
+    "or open the Stars tab for star charts. The outer ring is ecliptic longitude, marked "+
     "with the thirteen constellations the ecliptic really crosses, Ophiuchus included, and none of "+
     "them 30° wide.</p>";
   const holder=document.getElementById("moonpic");
   if(holder) holder.appendChild(drawPhase(m.el,64));
   tonightDay=localMidnight(T);
-  wireNight();
+  wireNight(); wireSections(); wireSky();
 }
 let tonightDay=null;
+/* Each part of the Tonight panel folds away, and the choice is kept in
+   this browser. Everything starts open. */
+const SECKEY="orrery-sections";
+function secState(){ try{ return JSON.parse(localStorage.getItem(SECKEY))||{}; }catch(e){ return {}; } }
+function sec(id,title,body){
+  const open=secState()[id]!==false;
+  return "<details class='sec' data-sec='"+id+"'"+(open?" open":"")+"><summary class='sub'>"+title+
+    "</summary>"+body+"</details>";
+}
+function wireSections(){
+  [...panel.querySelectorAll("details.sec")].forEach(d=>d.addEventListener("toggle",()=>{
+    const st=secState(); st[d.dataset.sec]=d.open;
+    try{ localStorage.setItem(SECKEY,JSON.stringify(st)); }catch(e){}
+  }));
+}
+const ev10=()=>upcoming(T,180).length>0;
 
 /* ---------- rising, setting and the night ahead ----------------------
    Altitudes come from the same geocentric positions as everything else,
@@ -2107,7 +2134,7 @@ function crossings0(f,t0,t1,step){
   return out;
 }
 function upcoming(t0,days){
-  const key=Math.floor(t0)+"|"+days;
+  const key=Math.floor(t0)+"|"+days+"|"+OBS_LAT+"|"+OBS_LON;
   if(upcomingCache.key===key) return upcomingCache.list;
   const ev=[], five=["Mercury","Venus","Mars","Jupiter","Saturn"].map(n=>BODIES.find(b=>b.n===n));
   five.forEach(b=>{
@@ -2260,8 +2287,7 @@ function yearHTML(){
       }
     });
   });
-  return "<div class='sub'>The year ahead</div>"+
-    "<svg class='year' viewBox='0 0 "+W+" "+H+"' role='img' aria-label='When each naked-eye planet "+
+  return "<svg class='year' viewBox='0 0 "+W+" "+H+"' role='img' aria-label='When each naked-eye planet "+
       "can be seen in the evening or morning sky over the next year'>"+g+"</svg>"+
     "<p class='legend'><span class='sw' style='background:#e8b866'></span>Evening: at least 5° up when "+
     "evening twilight ends. <span class='sw' style='background:#7fc7ff'></span>Morning: at least 5° up "+
@@ -2290,6 +2316,18 @@ function altAz(raDeg,dec,t){
   return {alt, az:(az+360)%360};
 }
 const SKY_R=150;
+/* the chart is redrawn every few frames, so its taps are caught once on
+   the holder rather than on each body */
+function wireSky(){
+  const holder=document.getElementById("skynow"); if(!holder) return;
+  holder.onclick=e=>{
+    const h=e.target.closest&&e.target.closest(".hit"); if(!h) return;
+    const n=h.dataset.body;
+    if(n==="Moon"){ showTab("moon"); return; }
+    const b=n==="Sun"?SUN:BODIES.find(x=>x.n===n);
+    if(b) select(b);
+  };
+}
 function skyXY(alt,az){ const r=SKY_R*(90-alt)/90, a=az*D2R; return [-r*Math.sin(a), -r*Math.cos(a)]; }
 function skySVG(t){
   const R=SKY_R, sunA=altOf("Sun",t), pn=precess(t)+nutate(t), f=v=>v.toFixed(1);
@@ -2309,13 +2347,38 @@ function skySVG(t){
       g+="<circle cx='"+f(p.xy[0])+"' cy='"+f(p.xy[1])+"' r='"+Math.max(0.7,2.6-0.45*p.s.mag).toFixed(2)+"' fill='#dfe4f5' opacity='"+starOp+"'/>";
       if(p.s.mag<1.0&&!/^\d/.test(p.s.n)) g+="<text x='"+f(p.xy[0]+4)+"' y='"+f(p.xy[1]+3)+"' class='sn'>"+p.s.n+"</text>"; });
   });
-  /* Sun, Moon and planets */
-  const body=(name,r,fill,label)=>{ const q=eqOf(name,t), h=altAz(q.ra,q.dec,t);
+  /* the ecliptic, the Sun's yearly path, which the Moon and planets keep near */
+  let seg="";
+  for(let L=0;L<=360;L+=3){
+    const q=ecl2eq(L*D2R,0), h=altAz(q.ra*15,q.dec,t);
+    if(h.alt>0){ const [x,y]=skyXY(h.alt,h.az); seg+=(seg?"L":"M")+f(x)+","+f(y); }
+    else if(seg){ g+="<path d='"+seg+"' class='eclp'/>"; seg=""; }
+  }
+  if(seg) g+="<path d='"+seg+"' class='eclp'/>";
+  /* Sun, Moon and planets, each one a tap away */
+  const unit=h=>{const a=h.alt*D2R, z=h.az*D2R; return [Math.cos(a)*Math.sin(z),Math.cos(a)*Math.cos(z),Math.sin(a)];};
+  const where=name=>{ const q=eqOf(name,t); return altAz(q.ra,q.dec,t); };
+  const hit=(name,x,y)=>"<circle cx='"+f(x)+"' cy='"+f(y)+"' r='13' class='hit' data-body='"+name+"'/>";
+  const body=(name,r,fill,label)=>{ const h=where(name);
     if(h.alt<=0) return; const [x,y]=skyXY(h.alt,h.az);
     g+="<circle cx='"+f(x)+"' cy='"+f(y)+"' r='"+r+"' fill='"+fill+"'/>"+
-      "<text x='"+f(x+r+3)+"' y='"+f(y+3.5)+"' class='bn'>"+label+"</text>"; };
+      "<text x='"+f(x+r+3)+"' y='"+f(y+3.5)+"' class='bn'>"+label+"</text>"+hit(name,x,y); };
   if(sunA>-0.833) body("Sun",7,"#fdb813","Sun");
-  body("Moon",6,"#e6e9f2","Moon");
+  /* the Moon with its phase, the lit side turned towards the Sun along
+     the great circle joining them */
+  const mh=where("Moon");
+  if(mh.alt>0){
+    const [x,y]=skyXY(mh.alt,mh.az), m=unit(mh), sv=unit(where("Sun")),
+      dot=m[0]*sv[0]+m[1]*sv[1]+m[2]*sv[2], k=0.03,
+      p=[m[0]+k*(sv[0]-dot*m[0]), m[1]+k*(sv[1]-dot*m[1]), m[2]+k*(sv[2]-dot*m[2])],
+      pl=Math.hypot(p[0],p[1],p[2]), palt=Math.asin(p[2]/pl)*R2D, paz=(Math.atan2(p[0],p[1])*R2D+360)%360,
+      [px,py]=skyXY(palt,paz), rot=Math.atan2(py-y,px-x)*R2D;
+    const el=moon(t).el, e=el*D2R, r=6.5, rx=r*Math.abs(Math.cos(e)), lit=(1-Math.cos(e))/2;
+    g+="<g transform='translate("+f(x)+","+f(y)+") rotate("+rot.toFixed(1)+")'>"+
+      "<circle r='"+r+"' fill='#2a3150'/>"+
+      "<path d='M0,"+(-r)+" A"+r+","+r+" 0 0 1 0,"+r+" A"+rx.toFixed(2)+","+r+" 0 0 "+(lit>0.5?1:0)+" 0,"+(-r)+" Z' fill='#e6e9f2'/></g>"+
+      "<text x='"+f(x+r+3)+"' y='"+f(y+3.5)+"' class='bn'>Moon</text>"+hit("Moon",x,y);
+  }
   ["Mercury","Venus","Mars","Jupiter","Saturn"].forEach(n=>body(n,3.6,BODIES.find(b=>b.n===n).c,n));
   const d=new Date(J2000+t*86400000);
   const when=("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2)+" on "+
@@ -2324,7 +2387,9 @@ function skySVG(t){
     SITES[HEMI].n+" at "+when+"'>"+g+"</svg>"+
     "<p class='legend'>From "+SITES[HEMI].n+" at "+when+(sunA>-0.833?", in daylight, so the stars are dimmed":"")+(running?
       " (the clock is running, so the sky turns with it)":"")+". Hold it overhead with north "+
-    "at the top: east is on the left, the edge is the horizon and the dashed rings are 30° and 60° up.</p>";
+    "at the top: east is on the left, the edge is the horizon and the dashed rings are 30° and 60° up. "+
+    "The dotted line is the ecliptic, the Sun's path, which the Moon and planets stay close to. "+
+    "Tap the Moon or a planet for its details.</p>";
 }
 
 /* ---------- the observer's own location ------------------------------
@@ -2356,8 +2421,7 @@ function nightHTML(){
     return "<tr"+(r.night?"":" class='day'")+"><td>"+r.n+"</td><td>"+cell(r.rise)+"</td><td>"+
       (r.top?cell(r.top.t)+" <span class='alt'>"+Math.round(r.top.alt)+"° "+compass(r.top.az)+"</span>":"–")+"</td><td>"+cell(r.set)+"</td></tr>";
   }).join("");
-  return "<div class='sub'>Rising and setting</div>"+
-    "<p class='where'>From "+site.n+(site.custom?"":" ("+siteLabel(site.lat,site.lon)+")")+
+  return "<p class='where'>From "+site.n+(site.custom?"":" ("+siteLabel(site.lat,site.lon)+")")+
       ", times in "+tz.replace(/_/g," ")+". <button class='linkish' id='sitechange'>Change</button></p>"+
     "<div id='siteform' hidden>"+
       "<div class='siterow'><label>Latitude <input id='sitelat' inputmode='decimal' value='"+site.lat+"'></label>"+
@@ -2367,7 +2431,8 @@ function nightHTML(){
       "<div class='siterow'><button id='sitesave'>Use this place</button><button id='sitegeo'>Find me</button>"+
       (site.custom?"<button id='sitereset'>Back to the default</button>":"")+"</div>"+
       "<p class='legend' id='sitemsg' style='margin:6px 0 0'></p></div>"+
-    "<p class='tonight'>"+(np.sunset?"Sun sets "+cell(np.sunset.t):"The Sun does not set")+
+    "<p class='tonight'>"+(np.sunset?"Sun sets "+cell(np.sunset.t):
+      (altOf("Sun",d0+0.5)>-0.833?"The Sun does not set":"The Sun does not rise"))+
       (np.sunrise?" and rises "+cell(np.sunrise.t)+".":".")+
       (np.darkStart&&np.darkEnd?" The sky is dark, with the Sun 12° or more below the horizon, from "+
         cell(np.darkStart.t)+" to "+cell(np.darkEnd.t)+".":"")+"</p>"+
@@ -2377,12 +2442,20 @@ function nightHTML(){
       "sunset to half an hour before sunrise, with its altitude and compass direction. Dimmed rows never climb 5° in that time. Times are good to a minute or two "+
       "for the planets and a few minutes for the Moon.</p>";
 }
-let showAllEvents=false;
+let showAllEvents=false, shownEvents=[];
+/* an event's moment in the browser's own time zone, the same as the
+   rising and setting times */
+function fmtWhen(t){
+  const d=new Date(J2000+t*86400000);
+  return ("0"+d.getDate()).slice(-2)+"/"+("0"+(d.getMonth()+1)).slice(-2)+"/"+d.getFullYear()+
+    " at "+("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);
+}
 function eventsHTML(){
   const all=upcoming(T,180), ev=showAllEvents?all:all.slice(0,10);
+  shownEvents=ev;
   if(!ev.length) return "";
-  return "<div class='sub'>Coming up</div>"+ev.map((e,i)=>
-    "<div class='ecl evt' data-t='"+e.t+"'><b><span>"+fmtDate(e.t)+"</span>"+
+  return ev.map((e,i)=>
+    "<div class='ecl evt' data-t='"+e.t+"'><b><span>"+fmtWhen(e.t)+"</span>"+
     "<button class='linkish ics' data-i='"+i+"' title='Save this event to your calendar'>Add to calendar</button></b>"+
     "<span class='where'>"+e.txt+"</span></div>").join("")+
     (all.length>ev.length?"<button class='linkish more' id='moreevents'>Show all "+all.length+
@@ -2437,7 +2510,7 @@ function wireNight(){
     relayout(); syncPicker(); tonight();
   });
   [...panel.querySelectorAll("button.ics")].forEach(b=>b.onclick=ev=>{
-    ev.stopPropagation(); saveIcs(upcoming(T,180)[+b.dataset.i]);
+    ev.stopPropagation(); saveIcs(shownEvents[+b.dataset.i]);
   });
   const more=document.getElementById("moreevents");
   if(more) more.onclick=()=>{ showAllEvents=true; tonight(); };
@@ -2490,8 +2563,8 @@ function moonPanel(shift){
   marks.sort((a,b)=>a.d-b.d);
   panel.innerHTML=
     "<div class='kind' style='margin-top:4px'>Moon phase calendar</div>"+
-    "<div class='calnav'><button id='calprev'>‹</button><b>"+MON[mo]+" "+y+"</b>"+
-      "<button id='calnext'>›</button></div>"+
+    "<div class='calnav'><button id='calprev' aria-label='Previous month'>‹</button><b>"+MON[mo]+" "+y+"</b>"+
+      "<button id='calnext' aria-label='Next month'>›</button></div>"+
     "<div class='calhead'><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span>"+
       "<span>S</span><span>S</span></div>"+
     "<div class='calgrid'>"+cells+"</div>"+
@@ -2610,7 +2683,9 @@ function moon(t){
   const dist=385001 - 20905*Math.cos(M) - 3699*Math.cos(2*D-M)
                     - 2956*Math.cos(2*D) - 570*Math.cos(2*M);   // km
   const e=vec(BODIES[2],t);
-  const lamSun=Math.atan2(-e.y,-e.x)*R2D;
+  /* the lunar theory counts from the equinox of date and the Sun's
+     position from J2000, so carry the Sun forward before comparing */
+  const lamSun=Math.atan2(-e.y,-e.x)*R2D+precess(t);
   let el=((lam-lamSun)%360+360)%360;                   // elongation east of the Sun
   return {lam:((lam%360)+360)%360, bet:bet, dist:dist, el:el,
           lit:(1-Math.cos(el*D2R))/2, age:el/360*29.530589};
@@ -2779,7 +2854,7 @@ function drawRetro(o){
     const dur=Math.round(win.ep[1]-win.ep[0]);
     txt += (win.ep[0]>T?"Its next backward loop runs ":(win.ep[1]<T?"Its last backward loop ran ":
       "The loop shown runs "))+fmtDate(win.ep[0])+" to "+fmtDate(win.ep[1])+
-      ": "+dur+" days, covering "+dl.toFixed(1)+"° of sky. ";
+      ": "+dur+" days, backing up "+Math.abs(wrap180(geo(o,win.ep[1]).lam-geo(o,win.ep[0]).lam)).toFixed(1)+"° along the ecliptic. ";
   }
   txt += "Nothing is actually reversing: Earth is overtaking on the inside of the track"+
     (o.a<1?", or being overtaken":"")+", and the line of sight swings backwards for a while.";
@@ -2816,12 +2891,12 @@ function showConstellation(key){
     });
   }
   panel.innerHTML=
-    "<svg id='chart' viewBox='0 0 280 200'></svg>"+
+    "<svg id='chart' viewBox='0 0 280 200' role='img' aria-label='Star chart of "+key+"'></svg>"+
     "<h2 style='margin-top:12px'>"+key+"</h2>"+
     "<div class='kind'>"+(c.zod?"On the ecliptic":"Off the ecliptic")+"</div>"+
     "<dl>"+
       "<dt>Centred near</dt><dd>"+ra0.toFixed(1)+"h, "+(dec0>=0?"+":"")+dec0.toFixed(0)+"°</dd>"+
-      "<dt>Due south at midnight</dt><dd>"+midnightCulmination(ra0)+"</dd>"+
+      "<dt>Due "+(OBS_LAT>=0?"south":"north")+" at midnight</dt><dd>"+midnightCulmination(ra0)+"</dd>"+
       "<dt>Best evening months</dt><dd>"+bestMonths(ra0)+"</dd>"+
       "<dt>Highest from "+Math.abs(OBS_LAT).toFixed(1)+"°"+(OBS_LAT>0?"N":"S")+"</dt><dd>"+
         (never?"never rises":maxAlt.toFixed(0)+"° up")+"</dd>"+
@@ -3021,7 +3096,14 @@ speed.value=sliderFromDps(DEFAULT_DPS);
 speed.addEventListener("input",setSpeed); setSpeed();
 document.getElementById("play").addEventListener("click",e=>{
   running=!running; e.target.textContent=running?"Pause":"Play";});
-document.getElementById("now").addEventListener("click",()=>{T=nowDays();relayout();});
+/* With the clock stopped, Today (or Now in field mode) keeps the orrery on
+   the real time: until something else moves the date, it follows the
+   wall clock. */
+let liveT=null;
+function goLive(){ T=nowDays(); relayout(); syncPicker(); if(!running) liveT=T;
+  if(!selected&&curTab==="tonight") tonight(); }
+document.getElementById("now").addEventListener("click",goLive);
+document.getElementById("fieldnow").addEventListener("click",goLive);
 document.getElementById("tilt").addEventListener("input",e=>{
   tiltDeg=+e.target.value; relayout();});
 document.getElementById("scale").addEventListener("click",e=>{
@@ -3208,8 +3290,8 @@ function markTab(t,name){
 }
 function labelled(text,el){
   const w=document.createElement("div");
-  const l=document.createElement("label"); l.textContent=text;
-  w.appendChild(l); w.appendChild(el); return w;
+  const l=document.createElement("label"), sp=document.createElement("span");
+  sp.textContent=text; l.appendChild(sp); l.appendChild(el); w.appendChild(l); return w;
 }
 tabs.addEventListener("click",e=>{
   const b=e.target.closest("button[data-tab]"); if(b) showTab(b.dataset.tab);
@@ -3252,7 +3334,7 @@ svg.addEventListener("click",e=>{
   if(!e.target.closest(".body")) select(null);
 });
 window.addEventListener("keydown",e=>{
-  if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT") return;
+  if(/^(INPUT|SELECT|TEXTAREA|BUTTON|SUMMARY|A)$/.test(e.target.tagName)) return;
   if(e.code==="Space"){e.preventDefault();document.getElementById("play").click();}
   else if(e.key==="Escape"){
     const m=menus.find(x=>x.open);
@@ -3344,8 +3426,10 @@ function frame(now){
   if(running){T+=dt*dps*dir; wall+=dt;}
   datetxt.textContent=fmtDate(T);
   if(frameN%15===0){
+    if(liveT!==null&&!running&&T===liveT){ T=nowDays(); liveT=T; }
+    else liveT=null;
     syncPicker();
-    const ov=document.getElementById("ovdate"); if(ov) ov.textContent=fmtDate(T);
+    const ov=document.getElementById("ovdate"); if(ov) ov.textContent=fmtDate(localMidnight(T)+0.5);
     const sk=document.getElementById("skynow"); if(sk&&!selected&&curTab==="tonight") sk.innerHTML=skySVG(T);
     const yr=new Date(J2000+T*86400000).getUTCFullYear();
     rangeNote.hidden=yr>=1800&&yr<=2050;
@@ -3447,7 +3531,7 @@ function frame(now){
         const elong=Math.acos(cl((dx*sx+dy*sy+dz*sz)/(D*sr),-1,1))*R2D;
         let rel=((lamB-lamS)%360+360)%360;           // east of the Sun = evening
         const east=rel<180;
-        let when = elong<9 ? "lost in the Sun's glare"
+        let when = elong<10 ? "lost in the Sun's glare"
                  : elong>150 ? "near opposition, up all night and at its best"
                  : (east?"an evening object, setting after the Sun"
                         :"a morning object, rising before the Sun");
@@ -3465,7 +3549,11 @@ nodes.forEach(nd=>{const v=vec(nd.b,T);nd.pos=proj(v.x,v.y,v.z,v.r);});
 fitView();
 /* on a phone, open straight into the field view — nobody wants to scroll
    past a control panel while standing in a dark garden */
-if(window.innerWidth<760){ setField(true); showTab("tonight"); }
+if(window.innerWidth<760){
+  running=false; document.getElementById("play").textContent="Play";
+  T=nowDays(); liveT=T;
+  setField(true); showTab("tonight");
+}
 else select(BODIES[2]);
 applyHash(location.hash);
 if(new URLSearchParams(location.search).has("test"))      /* hooks for tools/check.mjs */
@@ -3542,7 +3630,7 @@ document.getElementById("foot").innerHTML=[
  "is left out.",
  "<b>The Moon</b> uses an abridged "+
  "lunar theory accurate to roughly a third of a degree, which is fine for phase, age and constellation. "+
- "Eclipse prediction needs far more, so none is attempted. It carries the main perturbation terms and lands the principal phases "+
+ "Eclipse prediction needs far more, so none is attempted. The theory carries the main perturbation terms and lands the principal phases "+
  "within about half an hour, which is ample for a calendar. Oppositions, conjunctions and greatest "+
  "elongations are the turning points of the elongation curve, found to the minute; they land within an "+
  "hour of published times for the outer planets' oppositions and on the right date for the rest. "+

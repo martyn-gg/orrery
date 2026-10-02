@@ -76,6 +76,23 @@ ok("Venus greatest elongation 03/01/2027", isoOf(ev["Venus+"]).startsWith("2027-
 ok("Mars solar conjunction 21/03/2028", isoOf(ev["Mars-"]).startsWith("2028-03-21"), isoOf(ev["Mars-"]));
 ok("New moon 12/08/2026", isoOf(ev.newMoon).startsWith("2026-08-12"), isoOf(ev.newMoon));
 
+// 2a. Principal phases of the Moon against In-The-Sky.org, August 2026 to January 2027 (UTC).
+{
+  const ph = await T(([list]) => list.map(([iso, a]) =>
+    window.orreryTest.nextPhase(a, (Date.parse(iso) - Date.UTC(2000, 0, 1, 12)) / 864e5 - 5)),
+    [[["2026-08-12T17:37Z", 0], ["2026-08-20T02:46Z", 90], ["2026-08-28T04:18Z", 180], ["2026-10-03T13:25Z", 270],
+      ["2026-10-10T15:51Z", 0], ["2026-10-18T16:13Z", 90], ["2026-10-26T04:11Z", 180], ["2026-11-09T07:03Z", 0],
+      ["2026-11-24T14:53Z", 180], ["2026-12-09T00:53Z", 0], ["2026-12-24T01:28Z", 180], ["2027-01-07T20:25Z", 0],
+      ["2027-01-22T12:17Z", 180], ["2027-01-29T10:56Z", 270]]]);
+  const refs = ["2026-08-12T17:37Z", "2026-08-20T02:46Z", "2026-08-28T04:18Z", "2026-10-03T13:25Z", "2026-10-10T15:51Z",
+    "2026-10-18T16:13Z", "2026-10-26T04:11Z", "2026-11-09T07:03Z", "2026-11-24T14:53Z", "2026-12-09T00:53Z",
+    "2026-12-24T01:28Z", "2027-01-07T20:25Z", "2027-01-22T12:17Z", "2027-01-29T10:56Z"];
+  const errs = ph.map((t, i) => (t - days(refs[i])) * 1440);
+  const worst = Math.max(...errs.map(Math.abs)), mean = errs.reduce((a, b) => a + b, 0) / errs.length;
+  ok("14 Moon phases within 40 min, no bias", worst <= 40 && Math.abs(mean) <= 10,
+    "worst " + worst.toFixed(0) + " min, mean " + mean.toFixed(0) + " min");
+}
+
 // 2b. The Coming up list against In-The-Sky.org (JPL DE440), times in UTC. Solar conjunctions
 // there are equal ecliptic longitude and the others equal right ascension, as the page does them.
 const up = await T(([a, b]) => {
@@ -220,6 +237,64 @@ await ctx.close();
   await ctx.close();
 }
 
+// 4d. Southern wording, polar nights, a zodiac label, sections that stay folded, the sky chart.
+{
+  const { ctx, page, errors } = await open({}, "#date=2026-10-02");
+  const r = await page.evaluate(([d]) => {
+    const o = window.orreryTest;
+    o.setObserver(51.5, -0.13);
+    const north = o.upcoming(d, 120).find(e => /December solstice/.test(e.txt)).txt;
+    o.setObserver(-33.9, 151.2);
+    const south = o.upcoming(d, 120).find(e => /December solstice/.test(e.txt)).txt;
+    o.setObserver(51.5, -0.13);
+    return { north, south };
+  }, [days("2026-10-02T12:00:00Z")]);
+  ok("Coming up follows the observer's hemisphere", /shortest/.test(r.north) && /longest/.test(r.south), r.south);
+  const polar = await page.evaluate(([d]) => {
+    const o = window.orreryTest; o.setObserver(78, 15); o.setT(d);
+    document.getElementById("deselect").click();
+    const t = document.querySelector("details[data-sec='rising'] p.tonight").textContent; o.setObserver(51.5, -0.13); return t;
+  }, [days("2026-12-15T12:00:00Z")]);
+  ok("polar night says the Sun does not rise", /does not rise/.test(polar), polar.slice(0, 60));
+  await page.evaluate(() => document.querySelector("text.zod").dispatchEvent(new MouseEvent("click", { bubbles: true })));
+  await page.waitForTimeout(1500);
+  const zt = await page.evaluate(() => [document.querySelector("#tabs button.on").dataset.tab, !!document.getElementById("chart")]);
+  ok("a zodiac label opens the Stars tab and stays", zt[0] === "stars" && zt[1], zt.join(", "));
+  await page.evaluate(() => { window.orreryTest.setT(window.orreryTest.getT()); document.getElementById("deselect").click(); });
+  await page.waitForTimeout(300);
+  await page.locator("details[data-sec='year'] > summary").click(); await page.waitForTimeout(300);
+  await page.reload(); await page.waitForTimeout(1200);
+  await page.evaluate(() => document.getElementById("deselect").click()); await page.waitForTimeout(300);
+  const folded = await page.evaluate(() => !document.querySelector("details[data-sec='year']").open &&
+    document.querySelector("details[data-sec='sky']").open);
+  ok("a folded section stays folded after a reload", folded);
+  await page.evaluate(() => localStorage.removeItem("orrery-sections"));
+  // 22:30 BST on 02/10/2026: the Moon is up, the Sun is not
+  await page.evaluate(([d]) => { window.orreryTest.setT(d); document.getElementById("deselect").click(); }, [days("2026-10-02T21:30:00Z")]);
+  await page.waitForTimeout(600);
+  const sky = await page.evaluate(() => ({ ecl: document.querySelectorAll("#skynow path.eclp").length,
+    moon: !!document.querySelector("#skynow .hit[data-body='Moon']"),
+    saturn: !!document.querySelector("#skynow .hit[data-body='Saturn']") }));
+  ok("sky chart draws the ecliptic and the Moon", sky.ecl > 0 && sky.moon, JSON.stringify(sky));
+  if (sky.saturn) {
+    await page.locator("#skynow .hit[data-body='Saturn']").click({ force: true });
+    await page.waitForTimeout(400);
+    const h2 = await page.evaluate(() => (document.querySelector("#panel h2") || {}).textContent || "");
+    ok("tapping Saturn on the sky chart opens Saturn", /Saturn/.test(h2), h2);
+  } else ok("tapping Saturn on the sky chart opens Saturn", false, "Saturn not drawn");
+  ok("no errors in these checks", errors.length === 0, errors.slice(0, 2).join("; "));
+  await ctx.close();
+}
+
+// 4e. A phone opens on the real time with the clock stopped.
+{
+  const { ctx, page } = await open({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const r = await page.evaluate(() => ({ play: document.getElementById("play").textContent,
+    lag: Math.abs(window.orreryTest.getT() - (Date.now() - Date.UTC(2000, 0, 1, 12)) / 864e5) * 1440 }));
+  ok("a phone opens on now with the clock stopped", r.play === "Play" && r.lag < 2, r.play + ", " + r.lag.toFixed(1) + " min from now");
+  await ctx.close();
+}
+
 // 5. A link restores the view.
 {
   const { ctx, page } = await open({}, "#date=2027-02-19&body=mars&tilt=40&scale=square-root");
@@ -269,11 +344,11 @@ for (const [d, want] of [["1700-06-01", true], ["2026-10-02", false], ["2100-01-
   ok("the table gives Saturn's best direction", /\d+° S\b/.test(best), best);
   ok("Tonight lists events coming up", evs > 0, evs + " events");
   if (evs) {
-    const want = await page.locator(".evt b span").first().textContent();
+    const want = +(await page.locator(".evt").first().getAttribute("data-t"));
     await page.locator(".evt").first().click();
     await page.waitForTimeout(300);
-    const now = await page.evaluate(() => document.getElementById("datetxt").textContent);
-    ok("an event sets the clock to its date", now === want, now + " vs " + want);
+    const now = await page.evaluate(() => window.orreryTest.getT());
+    ok("an event sets the clock to its moment", Math.abs(now - want) < 1e-6, isoOf(now).slice(0, 16) + " vs " + isoOf(want).slice(0, 16));
   }
   const sky = await page.locator("#skynow svg circle").count();
   ok("the sky chart draws stars and bodies", sky > 50, sky + " circles");

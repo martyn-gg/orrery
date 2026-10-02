@@ -50,8 +50,11 @@ self.addEventListener('fetch', e => {
     e.respondWith(
       fetch(req)
         .then(res => {
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(req, copy));
+          // keep only a good copy: never an error page or a redirect
+          if (res.ok && !res.redirected) {
+            const copy = res.clone();
+            caches.open(CACHE).then(c => c.put(req, copy));
+          }
           return res;
         })
         .catch(() =>
