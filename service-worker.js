@@ -10,7 +10,7 @@
  * offline), and everything else — icons, images — is cache-first, since
  * those are versioned by the cache name and rarely change.
  */
-const CACHE = 'orrery-v3';
+const CACHE = 'orrery-v4';
 const ASSETS = [
   './',
   './index.html',

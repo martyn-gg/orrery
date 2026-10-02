@@ -13,7 +13,7 @@
      relative paths. Inert when the file is opened from disk. -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Orrery">
-<meta property="og:title" content="Orrery — the solar system in three dimensions">
+<meta property="og:title" content="Orrery: the solar system in three dimensions">
 <meta property="og:description" content="Real planetary positions from JPL elements for any date. Tilt the ecliptic, zoom in, watch retrograde loops, look up constellations, moon phases and eclipses. One self-contained file, no dependencies.">
 <meta property="og:url" content="https://martyn-gg.github.io/orrery/">
 <meta property="og:image" content="https://martyn-gg.github.io/orrery/og-image.png">
@@ -22,11 +22,11 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="The solar system seen at an angle, the Sun at the centre with the planets, their moons and the asteroid belt on tilted elliptical orbits against a starfield.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Orrery — the solar system in three dimensions">
+<meta name="twitter:title" content="Orrery: the solar system in three dimensions">
 <meta name="twitter:description" content="Real planetary positions from JPL elements for any date. Tilt the ecliptic, zoom in, watch retrograde loops, look up constellations, moon phases and eclipses.">
 <meta name="twitter:image" content="https://martyn-gg.github.io/orrery/og-image.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%2305060d'/%3E%3Cellipse cx='32' cy='32' rx='24' ry='9' fill='none' stroke='%233c4470' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='8' fill='%23fdb813'/%3E%3Ccircle cx='56' cy='32' r='4' fill='%234f92d4'/%3E%3C/svg%3E">
-<title>Orrery — the solar system in three dimensions</title>
+<title>Orrery: the solar system in three dimensions</title>
 <style>
   :root{--bg:#05060d;--panel:#0d1020;--panel2:#131730;--line:#252a45;
         --ink:#e8ebf5;--muted:#8f96b3;--accent:#7fc7ff}
@@ -34,29 +34,71 @@
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif;
     -webkit-font-smoothing:antialiased}
-  header{padding:16px 24px 9px;border-bottom:1px solid var(--line)}
-  h1{margin:0;font-size:19px;font-weight:600}
-  header p{margin:5px 0 0;font-size:13px;color:var(--muted);max-width:86ch;line-height:1.5}
-  .wrap{display:flex;min-height:0}
-  .stage{flex:1 1 auto;position:relative;min-width:0;overflow:hidden;cursor:grab;
-    height:calc(100vh - 208px);min-height:400px}
+  /* the app fills the window: header and toolbar take what they need and
+     the stage takes the rest, so nothing has to guess the toolbar height */
+  .app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:540px}
+  header{display:flex;align-items:center;gap:6px 22px;flex-wrap:wrap;
+    padding:10px 24px;border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:10px}
+  .mark{width:28px;height:28px;flex:0 0 auto}
+  h1{margin:0;font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    font-size:24px;font-weight:600;letter-spacing:.3px}
+  header p{margin:0;font-size:13px;color:var(--muted);flex:1 1 420px;line-height:1.5}
+  .wrap{display:flex;flex:1 1 auto;min-height:0}
+  .stage{flex:1 1 auto;position:relative;min-width:0;overflow:hidden;cursor:grab}
   .stage.drag{cursor:grabbing}
   svg#sky{position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none}
-  aside{flex:0 0 336px;border-left:1px solid var(--line);background:var(--panel);
+  aside{flex:0 0 360px;border-left:1px solid var(--line);background:var(--panel);
     padding:16px 18px 24px;overflow:auto}
-  .controls{display:flex;flex-wrap:wrap;gap:12px 14px;align-items:center;
-    padding:9px 24px;border-bottom:1px solid var(--line);background:#080a15;font-size:13px}
+  .controls{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;
+    padding:9px 24px;border-bottom:1px solid var(--line);background:#080a15;font-size:13px;
+    position:relative;z-index:20}
   button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);
     border-radius:7px;padding:6px 11px;font-size:13px;cursor:pointer;font-family:inherit}
   button:hover{border-color:#3c4470}
   button.on{border-color:var(--accent);color:var(--accent)}
   input[type=range]{width:130px;accent-color:var(--accent)}
-  .date{font-variant-numeric:tabular-nums;color:var(--muted)}
+  .datebox{position:relative;display:inline-block}
+  .date{font-variant-numeric:tabular-nums;min-width:108px}
   .date b{color:var(--ink);font-weight:600;font-size:14px}
+  /* the native picker sits under the date button; the button opens it */
+  #datepick{position:absolute;left:0;bottom:0;width:100%;height:1px;opacity:0;
+    pointer-events:none;border:0;padding:0}
+  .datebox.open #datepick{position:static;height:auto;opacity:1;pointer-events:auto;
+    width:auto;border:1px solid var(--line);padding:5px 8px;margin-left:6px}
+  /* Show, View and ? are small drop-down panels */
+  details.menu{position:relative}
+  details.menu>summary{list-style:none;background:var(--panel2);color:var(--ink);
+    border:1px solid var(--line);border-radius:7px;padding:6px 11px;font-size:13px;
+    cursor:pointer;user-select:none;-webkit-user-select:none}
+  details.menu>summary::-webkit-details-marker{display:none}
+  details.menu>summary::after{content:"";display:inline-block;width:6px;height:6px;
+    margin-left:8px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);
+    transform:translateY(-3px) rotate(45deg)}
+  details.menu.help>summary{padding:6px 12px;font-weight:600}
+  details.menu.help>summary::after{display:none}
+  details.menu>summary:hover{border-color:#3c4470}
+  details.menu[open]>summary{border-color:var(--accent);color:var(--accent)}
+  .pop{position:absolute;top:calc(100% + 6px);left:0;min-width:250px;background:var(--panel);
+    border:1px solid #2c3356;border-radius:10px;padding:10px;
+    box-shadow:0 12px 32px rgba(0,0,0,.55)}
+  .help .pop{left:auto;right:0}
+  #viewmenu .pop{min-width:330px}
+  .help .pop p{margin:0;font-size:13px;line-height:1.75;color:#c3cae0;white-space:nowrap}
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .pop .twocol{margin-top:10px}
+  .pop.twocol{min-width:240px}
+  .pop.twocol{margin-top:0}
+  .pop button{text-align:left;width:100%}
+  #showmenu .pop button::before{content:"";display:inline-block;width:8px;height:8px;
+    border-radius:50%;margin-right:8px;border:1px solid #4a5280;vertical-align:0}
+  #showmenu .pop button.on::before{background:var(--accent);border-color:var(--accent)}
+  label.stack{display:flex;flex-direction:column;gap:5px;color:var(--muted);font-size:12px}
+  label.stack select{width:100%}
   label.ctl{display:flex;align-items:center;gap:6px;color:var(--muted);white-space:nowrap}
   select,input[type=date]{background:var(--panel2);color:var(--ink);border:1px solid var(--line);
     border-radius:7px;padding:5px 8px;font-size:13px;font-family:inherit}
-  .hint{color:#5f6685;font-size:12px}
+  .hint{color:var(--muted);font-size:12px}
   text.zod{font-size:11px;fill:#606a92;pointer-events:none;letter-spacing:.6px}
   .zring{fill:none;stroke:#232a48;stroke-width:1;vector-effect:non-scaling-stroke}
   .ztick{stroke:#2e3760;stroke-width:1;vector-effect:non-scaling-stroke}
@@ -156,8 +198,14 @@
   .swatch{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;vertical-align:1px}
   .tip{position:absolute;pointer-events:none;background:#111530;border:1px solid #333a63;
     border-radius:7px;padding:6px 9px;font-size:12px;opacity:0;transition:opacity .12s;white-space:nowrap}
-  footer{padding:14px 24px 28px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.6}
+  footer{padding:14px 24px 28px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);line-height:1.6}
   footer b{color:#b9c0d8;font-weight:600}
+  footer a{color:var(--accent);text-decoration:none}
+  footer a:hover{text-decoration:underline}
+  footer .credit{margin:0 0 8px;max-width:110ch}
+  footer details.notes>summary{cursor:pointer;color:#b9c0d8;width:max-content;max-width:100%}
+  footer #foot{max-width:92ch;margin-top:6px}
+  footer #foot p{margin:0 0 10px}
   /* ---- tab bar ---- */
   .tabs{display:flex;gap:5px;margin:-4px 0 14px;position:sticky;top:0;background:var(--panel);
     padding:6px 0 8px;z-index:5;border-bottom:1px solid var(--line)}
@@ -171,8 +219,9 @@
 
   /* ---- field mode: the panel only, for use outdoors ---- */
   body.field header p,body.field .controls,body.field .stage,body.field footer{display:none}
+  body.field .app{height:auto;min-height:0}
   body.field aside{flex:1 1 auto;border-left:0;width:100%;padding:12px 14px 40px}
-  body.field header{padding:10px 14px 8px;display:flex;align-items:center;justify-content:space-between}
+  body.field header{padding:10px 14px 8px;justify-content:space-between;flex-wrap:nowrap}
   body.field .tabs button{font-size:13px;padding:11px 4px}
   body.field .fieldbar{display:flex}
   .fieldbar{display:none;gap:7px;align-items:center}
@@ -182,14 +231,15 @@
   body.night{filter:url(#redonly) brightness(.85)}
 
   @media (max-width:900px){
+    .app{height:auto;min-height:0}
     .wrap{flex-direction:column}
+    .stage{flex:0 0 auto;height:72vh;min-height:360px}
     aside{flex:1 1 auto;border-left:0;border-top:1px solid var(--line);width:100%}
-    header{padding:12px 14px 8px}
+    header{padding:10px 14px}
     header p{font-size:12.5px}
     .controls{padding:8px 12px;gap:8px}
-    button,select,input[type=date]{padding:9px 12px;font-size:14px}
+    button,select,input[type=date],details.menu>summary{padding:9px 12px;font-size:14px}
     .tabs button{font-size:12.5px;padding:10px 3px}
-    svg#sky{max-height:78vh}
     dl{font-size:14px}
     aside p.note,.tonight,.sky{font-size:14px}
     .legend,.where{font-size:13px}
@@ -206,62 +256,86 @@
     0    0    0    0 0
     0    0    0    1 0"/></filter>
 </defs></svg>
+<div class="app">
 <header>
-  <h1>Orrery</h1>
+  <div class="brand">
+    <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="32" fill="#0d1020"/><ellipse cx="32" cy="32" rx="24" ry="9" fill="none" stroke="#3c4470" stroke-width="2"/><circle cx="32" cy="32" r="8" fill="#fdb813"/><circle cx="56" cy="32" r="4" fill="#4f92d4"/></svg>
+    <h1>Orrery</h1>
+  </div>
   <div class="fieldbar">
     <button id="fieldnight">Night vision</button>
     <button id="fieldhemi">N</button>
     <button id="fieldexit">Full view</button>
   </div>
-  <p>Positions computed from JPL's Keplerian elements, so the planets are where they actually are on the date shown.
-  Tilt the ecliptic to see the inclinations, scroll to zoom, drag to pan. Click any body for its numbers.</p>
+  <p>The planets where they actually are on the date shown, computed from JPL's orbital elements.
+  Click any body for its numbers.</p>
 </header>
 
 <div class="controls">
   <button id="play">Pause</button>
   <label class="ctl">Speed <input id="speed" type="range" min="0" max="100" step="0.1" value="27.4"></label>
-  <span class="date"><b id="datetxt">—</b></span>
+  <span class="datebox">
+    <button id="datebtn" class="date" title="Choose a date" aria-label="Date shown, choose another"><b id="datetxt">&ndash;</b></button>
+    <input type="date" id="datepick" tabindex="-1" aria-label="Date">
+  </span>
   <button id="now">Today</button>
   <label class="ctl">Tilt <input id="tilt" type="range" min="0" max="72" value="22"></label>
   <button id="scale">Scale: compressed</button>
-  <button id="zoomout">Reset view</button>
-  <button id="tglLabels" class="on">Labels</button>
-  <button id="tglBelts" class="on">Belts</button>
-  <button id="tglMoons" class="on">Moons</button>
-  <button id="tglTrails" class="on">Trails</button>
-  <button id="tglComets" class="on">Comets</button>
-  <button id="tglOrbits" class="on">Orbits</button>
-  <button id="tglZodiac" class="on">Zodiac</button>
-  <button id="deselect">Deselect</button>
-</div>
-<div class="controls">
-  <label class="ctl">Date <input type="date" id="datepick"></label>
-  <label class="ctl">Jump to
-    <select id="events">
-      <option value="">an event…</option>
-      <option value="1846-09-23">Neptune discovered (1846)</option>
-      <option value="1930-02-18">Pluto discovered (1930)</option>
-      <option value="1986-02-09">Halley at perihelion (1986)</option>
-      <option value="1989-08-25">Voyager 2 at Neptune (1989)</option>
-      <option value="1989-09-05">Pluto at perihelion (1989)</option>
-      <option value="2003-08-27">Mars at its closest (2003)</option>
-      <option value="2015-07-14">New Horizons at Pluto (2015)</option>
-      <option value="2020-12-21">Great conjunction (2020)</option>
-      <option value="2040-10-31">Next great conjunction (2040)</option>
-      <option value="2061-07-28">Halley returns (2061)</option>
-    </select>
-  </label>
-  <button id="reverse">Direction: forward</button>
-  <button id="follow">Follow selected</button>
-  <label class="ctl">Planet <select id="planetpick"><option value="">look up…</option></select></label>
-  <label class="ctl">Constellation <select id="conpick"><option value="">look up…</option></select></label>
-  <button id="hemi">View: northern</button>
-  <button id="moonbtn">Moon calendar</button>
-  <button id="eclbtn">Eclipses</button>
-  <button id="tglSight" class="on">Sight line</button>
-  <button id="field">Field mode</button>
-  <button id="night">Night vision</button>
-  <span class="hint">Space pauses &middot; ← → step a day &middot; Esc deselects &middot; click empty sky to deselect</span>
+  <details class="menu" id="showmenu">
+    <summary>Show</summary>
+    <div class="pop twocol">
+      <button id="tglLabels" class="on">Labels</button>
+      <button id="tglOrbits" class="on">Orbits</button>
+      <button id="tglMoons" class="on">Moons</button>
+      <button id="tglTrails" class="on">Trails</button>
+      <button id="tglBelts" class="on">Belts</button>
+      <button id="tglComets" class="on">Comets</button>
+      <button id="tglZodiac" class="on">Zodiac</button>
+      <button id="tglSight" class="on">Sight line</button>
+    </div>
+  </details>
+  <details class="menu" id="viewmenu">
+    <summary>View</summary>
+    <div class="pop">
+      <label class="stack">Jump to
+        <select id="events">
+          <option value="">an event…</option>
+          <option value="1846-09-23">Neptune discovered (1846)</option>
+          <option value="1930-02-18">Pluto discovered (1930)</option>
+          <option value="1986-02-09">Halley at perihelion (1986)</option>
+          <option value="1989-08-25">Voyager 2 at Neptune (1989)</option>
+          <option value="1989-09-05">Pluto at perihelion (1989)</option>
+          <option value="2003-08-27">Mars at its closest (2003)</option>
+          <option value="2015-07-14">New Horizons at Pluto (2015)</option>
+          <option value="2020-12-21">Great conjunction (2020)</option>
+          <option value="2040-10-31">Next great conjunction (2040)</option>
+          <option value="2061-07-28">Halley returns (2061)</option>
+        </select>
+      </label>
+      <div class="twocol">
+        <button id="zoomout">Reset view</button>
+        <button id="follow">Follow selected</button>
+        <button id="reverse">Direction: forward</button>
+        <button id="deselect">Deselect</button>
+        <button id="hemi">View: northern</button>
+        <button id="field">Field mode</button>
+        <button id="night">Night vision</button>
+      </div>
+    </div>
+  </details>
+  <details class="menu help" id="helpmenu">
+    <summary title="Keyboard and mouse" aria-label="Keyboard and mouse">?</summary>
+    <div class="pop">
+      <p>Space pauses and plays.<br>
+      ← and → step a day; hold Shift for 30 days.<br>
+      Esc, or a click on empty sky, deselects.<br>
+      Scroll to zoom, drag to pan.</p>
+    </div>
+  </details>
+  <div hidden>
+    <select id="planetpick"><option value="">look up…</option></select>
+    <select id="conpick"><option value="">look up…</option></select>
+  </div>
 </div>
 
 <div class="wrap">
@@ -281,8 +355,18 @@
     <div id="panel"></div>
   </aside>
 </div>
+</div>
 
-<footer id="foot"></footer>
+<footer>
+  <p class="credit">Positions from JPL's Keplerian elements. Moon counts confirmed to April 2026.
+  Eclipse entries are published catalogue figures, not model output.
+  <a href="https://github.com/martyn-gg/orrery">Source on GitHub</a> under the MIT licence.
+  Made by <a href="https://martyn-gg.github.io/">Martyn Greville-Giddings</a>.</p>
+  <details class="notes">
+    <summary>How it is computed, and where it falls short</summary>
+    <div id="foot"></div>
+  </details>
+</footer>
 
 <script>
 (function(){
@@ -304,17 +388,17 @@ const BODIES=[
   a:0.38709927,da:0.00000037, e:0.20563593,de:0.00001906, i:7.00497902,di:-0.00594749,
   L:252.25032350,dL:149472.67411175, pi:77.45779628,dpi:0.16047689, om:48.33076593,dom:-0.12534081,
   day:"58.6 days (176-day solar day)",
-  note:"The most eccentric planetary orbit and the most inclined — 7° to the ecliptic. Its perihelion creeps round 43 arcseconds per century faster than Newton allows, which was general relativity's first success."},
+  note:"The most eccentric planetary orbit and the most inclined, at 7° to the ecliptic. Its perihelion creeps round 43 arcseconds per century faster than Newton allows, which was general relativity's first success."},
  {n:"Venus",t:"planet",c:"#e8c98a",d:12104,moons:0,rot:-5832.5,
   a:0.72333566,da:0.00000390, e:0.00677672,de:-0.00004107, i:3.39467605,di:-0.00078890,
   L:181.97909950,dL:58517.81538729, pi:131.60246718,dpi:0.00268329, om:76.67984255,dom:-0.27769418,
   day:"243 days, retrograde",
-  note:"The roundest orbit in the solar system — near enough a perfect circle. It rotates backwards, and more slowly than it orbits, so its day is longer than its year."},
+  note:"The roundest orbit in the solar system, near enough a perfect circle. It rotates backwards, and more slowly than it orbits, so its day is longer than its year."},
  {n:"Earth",t:"planet",c:"#4f92d4",d:12756,moons:1,rot:23.93,
   a:1.00000261,da:0.00000562, e:0.01671123,de:-0.00004392, i:-0.00001531,di:-0.01294668,
   L:100.46457166,dL:35999.37244981, pi:102.93768193,dpi:0.32327364, om:0.0,dom:0.0,
   day:"23 h 56 m",
-  note:"Closest to the Sun in early January and furthest in early July — worth remembering next time somebody explains the seasons by distance. This is the plane everything else is measured against, so its inclination is zero by definition."},
+  note:"Closest to the Sun in early January and furthest in early July. Worth remembering next time somebody explains the seasons by distance. This is the plane everything else is measured against, so its inclination is zero by definition."},
  {n:"Mars",t:"planet",c:"#c1502e",d:6792,moons:2,rot:24.62,
   a:1.52371034,da:0.00001847, e:0.09339410,de:0.00007882, i:1.84969142,di:-0.00813131,
   L:-4.55343205,dL:19140.30268499, pi:-23.94362959,dpi:0.44441088, om:49.55953891,dom:-0.29257343,
@@ -334,7 +418,7 @@ const BODIES=[
   a:9.53667594,da:-0.00125060, e:0.05386179,de:-0.00050991, i:2.48599187,di:0.00193609,
   L:49.95424423,dL:1222.49362201, pi:92.59887831,dpi:-0.41897216, om:113.66242448,dom:-0.28867794,
   day:"10 h 33 m",
-  note:"The moon champion — 11 more announced in March 2026 and 7 in April, taking it to 292. Less dense than water. Its 26.7° tilt is why the rings open and close over a 29-year cycle."},
+  note:"The moon champion: 11 more announced in March 2026 and 7 in April, taking it to 292. Less dense than water. Its 26.7° tilt is why the rings open and close over a 29-year cycle."},
  {n:"Uranus",t:"planet",c:"#90d3dc",d:51118,moons:29,rot:-17.24,
   a:19.18916464,da:-0.00196176, e:0.04725744,de:-0.00004397, i:0.77263783,di:-0.00242939,
   L:313.23810451,dL:428.48202785, pi:170.95427630,dpi:0.40805281, om:74.01692503,dom:0.04240589,
@@ -364,7 +448,7 @@ const BODIES=[
   a:67.86,da:0, e:0.436,de:0, i:44.04,di:0,
   L:22.4,dL:64.4, pi:187.59,dpi:0, om:35.95,dom:0,
   day:"25 h 54 m",
-  note:"The body that got Pluto demoted — slightly smaller but 27% more massive. Steeply inclined at 44° and wildly eccentric: 38 AU at perihelion, 97 at aphelion. It is near aphelion now, which is why nobody found it until 2005."}
+  note:"The body that got Pluto demoted. Slightly smaller but 27% more massive. Steeply inclined at 44° and wildly eccentric: 38 AU at perihelion, 97 at aphelion. It is near aphelion now, which is why nobody found it until 2005."}
 ];
 
 const COMETS=[
@@ -372,12 +456,12 @@ const COMETS=[
   a:17.834,da:0, e:0.96714,de:0, i:162.26,di:0,
   L:236.15,dL:478.1, pi:169.75,dpi:0, om:58.42,dom:0,
   day:"52.8 h",
-  note:"Retrograde — its 162° inclination means it runs backwards round the Sun, and steeply out of the plane. Perihelion was February 1986 and the next is summer 2061. Tilt the view: this is the orbit that shows what an eccentricity of 0.967 really means."},
+  note:"Retrograde: its 162° inclination means it runs backwards round the Sun, and steeply out of the plane. Perihelion was February 1986 and the next is summer 2061. Tilt the view: this is the orbit that shows what an eccentricity of 0.967 really means."},
  {n:"Encke",t:"comet",c:"#a8e0c0",d:4.8,moons:0,rot:11,
   a:2.2155,da:0, e:0.8483,de:0, i:11.78,di:0,
   L:85.9,dL:10909.0, pi:161.12,dpi:0, om:334.57,dom:0,
   day:"11 h",
-  note:"The shortest period of any known comet — 3.3 years, so it laps the inner system while you watch. It has been observed on more than sixty returns and is now nearly spent, with very little tail left."}
+  note:"The shortest period of any known comet, at 3.3 years, so it laps the inner system while you watch. It has been observed on more than sixty returns and is now nearly spent, with very little tail left."}
 ];
 
 const ALL=BODIES.concat(COMETS);
@@ -408,11 +492,11 @@ const BELTS=[
  {n:"Asteroid Belt",i:2.1,o:3.3,rings:9,inc:9,c:"#6e6650",kind:"belt",
   note:"Roughly 2.1–3.3 AU, and thicker than it is usually drawn: typical inclinations run to about 10°, so it is a fat doughnut rather than a ring. Perhaps 1–2 million asteroids over a kilometre across, weighing about 3% of the Moon between them, a third of that being Ceres. The average gap between objects is millions of kilometres."},
  {n:"Kuiper Belt",i:30,o:50,rings:12,inc:14,c:"#4d5a7e",kind:"belt",
-  note:"Roughly 30–50 AU. Tilt the view and it becomes what it really is — a thick torus, not a ring, with inclinations commonly reaching 15° or more. It holds well over 100,000 bodies bigger than 100 km, including Pluto, Haumea and Makemake. Short-period comets such as Encke come from here; Halley comes from further out still."}
+  note:"Roughly 30–50 AU. Tilt the view and it becomes what it really is, a thick torus, not a ring, with inclinations commonly reaching 15° or more. It holds well over 100,000 bodies bigger than 100 km, including Pluto, Haumea and Makemake. Short-period comets such as Encke come from here; Halley comes from further out still."}
 ];
 
 const SUN={n:"The Sun",kind:"star",
-  note:"99.86% of the mass of the solar system, and the focus of every ellipse here — never the centre of any of them.",
+  note:"99.86% of the mass of the solar system, and the focus of every ellipse here, and never the centre of any of them.",
   facts:[["Diameter","1,392,700 km"],["Surface","5,500 °C"],["Core","15 million °C"],
          ["Rotation","25 days at the equator, 35 at the poles"],["Age","4.6 billion years"]]};
 
@@ -422,6 +506,8 @@ const mk=(t,at)=>{const e=document.createElementNS(NS,t);for(const k in at)e.set
 const defs=mk("defs",{}); svg.appendChild(defs);
 const CX=500, CY=500;
 const cl=(v,a,b)=>v<a?a:(v>b?b:v);
+/* toFixed keeps the sign of a value that rounds to zero ("-0.00"); drop it */
+const fx=(v,n)=>{const t=v.toFixed(n); return /^-0\.?0*$/.test(t)?t.slice(1):t;};
 const sm=t=>t*t*(3-2*t);
 let seed=20260812;
 const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;};
@@ -872,7 +958,7 @@ function constellation(lon){
     const a=ZOD[i][0], b=ZOD[(i+1)%ZOD.length][0];
     if(a<b?(lon>=a&&lon<b):(lon>=a||lon<b)) return ZOD[i][1];
   }
-  return "—";
+  return "–";
 }
 /* ==================================================================
    STAR CATALOGUE  [name, RA hours, Dec degrees, visual magnitude]
@@ -883,7 +969,7 @@ const CON={
  Aries:{full:"Aries, the Ram",stars:[["Hamal",2.119,23.46,2.00],["Sheratan",1.911,20.81,2.64],
    ["Mesarthim",1.892,19.29,3.86],["41 Ari",2.832,27.26,3.61]],
    lines:[[2,1,0,3]],zod:true,
-   find:"Small and faint — two modest stars and not much else. Drop south-west from the "+
+   find:"Small and faint: two modest stars and not much else. Drop south-west from the "+
      "Pleiades, or follow the western side of the Great Square of Pegasus downwards; Hamal and "+
      "Sheratan sit roughly halfway between the Square and the Pleiades."},
  Taurus:{full:"Taurus, the Bull",stars:[["Aldebaran",4.599,16.51,0.87],["Elnath",5.438,28.61,1.65],
@@ -898,13 +984,13 @@ const CON={
    ["Mekbuda",7.068,20.57,3.90],["Tejat",6.383,22.51,2.87]],
    lines:[[1,4,6],[0,3,2],[1,0],[3,5,2]],zod:true,
    find:"Castor and Pollux are an obvious close pair of bright stars. Take Orion's two "+
-     "shoulders, Bellatrix then Betelgeuse, and extend that line up and to the left — it lands "+
+     "shoulders, Bellatrix then Betelgeuse, and extend that line up and to the left and it lands "+
      "on the twins. Pollux is the brighter and slightly the more orange."},
  Cancer:{full:"Cancer, the Crab",stars:[["Altarf",8.275,9.19,3.53],["Asellus Aus.",8.745,18.15,3.94],
    ["Asellus Bor.",8.721,21.47,4.66],["Acubens",8.975,11.86,4.26],["ι Cnc",8.783,28.76,4.03],
    ["Praesepe",8.670,19.67,3.10]],
    lines:[[0,1,2,4],[1,3]],zod:true,
-   find:"The faintest zodiac constellation — you need a dark sky. It sits in the gap between "+
+   find:"The faintest zodiac constellation, and you need a dark sky. It sits in the gap between "+
      "Gemini's twins and the sickle of Leo. The giveaway is Praesepe, the Beehive cluster, a "+
      "hazy patch to the naked eye that explodes into stars in binoculars."},
  Leo:{full:"Leo, the Lion",stars:[["Regulus",10.139,11.97,1.36],["Denebola",11.818,14.57,2.14],
@@ -912,20 +998,20 @@ const CON={
    ["Chertan",11.237,15.43,3.32],["Adhafera",10.278,23.42,3.44],["η Leo",10.122,16.76,3.50],
    ["μ Leo",9.879,26.01,3.88]],
    lines:[[0,7,2,6,8,4],[0,5,1,3,5],[2,3]],zod:true,
-   find:"Genuinely looks like a crouching lion. The head is the Sickle — a backwards question "+
+   find:"Genuinely looks like a crouching lion. The head is the Sickle, a backwards question "+
      "mark with Regulus as the full stop. To find it, take the two stars at the far end of the "+
      "Plough's bowl and follow them the *other* way from Polaris; they point down to Leo."},
  Virgo:{full:"Virgo, the Maiden",stars:[["Spica",13.420,-11.16,0.98],["Zavijava",11.845,1.76,3.61],
    ["Porrima",12.694,-1.45,2.74],["Auva",12.926,3.40,3.38],["Vindemiatrix",13.036,10.96,2.83],
    ["ζ Vir",13.578,-0.60,3.38],["η Vir",12.333,-0.67,3.89]],
    lines:[[1,6,2,3,4],[2,5,0]],zod:true,
-   find:"\"Arc to Arcturus, then spike to Spica\" — follow the curve of the Plough's handle "+
+   find:"\"Arc to Arcturus, then spike to Spica\": follow the curve of the Plough's handle "+
      "onwards to orange Arcturus, then keep the same curve going and you arrive at blue-white "+
      "Spica. Everything else in Virgo is faint by comparison."},
  Libra:{full:"Libra, the Scales",stars:[["Zubeneschamali",15.283,-9.38,2.61],
    ["Zubenelgenubi",14.848,-16.04,2.75],["Zubenelakrab",15.596,-14.79,3.91],["σ Lib",15.068,-25.28,3.29]],
    lines:[[1,0,2,1],[1,3]],zod:true,
-   find:"A quiet triangle just west of Scorpius — it was once the scorpion's claws, which is "+
+   find:"A quiet triangle just west of Scorpius. It was once the scorpion's claws, which is "+
      "what its two tongue-twisting star names actually mean. Find Antares first and look to the "+
      "upper right."},
  Scorpius:{full:"Scorpius, the Scorpion",stars:[["Antares",16.490,-26.43,1.06],
@@ -934,7 +1020,7 @@ const CON={
    ["μ Sco",16.865,-38.05,3.00],["ζ Sco",16.912,-42.36,3.62],["η Sco",17.203,-43.24,3.32],
    ["Sargas",17.622,-43.00,1.86],["ι Sco",17.793,-40.13,3.03],["Shaula",17.560,-37.10,1.62]],
    lines:[[1,2,3],[2,4,0,5,6,7,8,9,10,11,12]],zod:true,
-   find:"A real scorpion shape with a curling tail, marked by red Antares — the name means "+
+   find:"A real scorpion shape with a curling tail, marked by red Antares, whose name means "+
      "\"rival of Mars\", and when Mars passes nearby you can see why. From Britain it barely "+
      "clears the southern horizon on summer evenings and the sting never rises at all."},
  Ophiuchus:{full:"Ophiuchus, the Serpent Bearer",stars:[["Rasalhague",17.582,12.56,2.08],
@@ -943,14 +1029,14 @@ const CON={
    ["λ Oph",16.515,1.98,3.82]],
    lines:[[0,6,3,2],[3,4,5],[5,1,0]],zod:true,
    find:"The thirteenth zodiac constellation, and the one astrology forgot. A big lopsided "+
-     "pentagon above Scorpius — Rasalhague at its top is easy, sitting a third of the way from "+
+     "pentagon above Scorpius. Rasalhague at its top is easy, sitting a third of the way from "+
      "Vega towards Antares."},
  Sagittarius:{full:"Sagittarius, the Archer",stars:[["Kaus Australis",18.403,-34.38,1.85],
    ["Nunki",18.921,-26.30,2.02],["Kaus Media",18.350,-29.83,2.70],["Kaus Borealis",18.466,-25.42,2.81],
    ["φ Sgr",18.762,-26.99,3.17],["ζ Sgr",19.044,-29.88,2.60],["τ Sgr",19.115,-27.67,3.32],
    ["Alnasl",18.097,-30.42,2.99]],
    lines:[[7,2,0,5,1,4,2],[3,4],[3,2],[5,6,1]],zod:true,
-   find:"Forget the archer — everyone sees a teapot, complete with spout, lid and handle. It "+
+   find:"Forget the archer: everyone sees a teapot, complete with spout, lid and handle. It "+
      "sits low in the south on summer evenings, and the Milky Way steams out of the spout. "+
      "That direction is the centre of our galaxy."},
  Capricornus:{full:"Capricornus, the Sea Goat",stars:[["Deneb Algedi",21.784,-16.13,2.85],
@@ -973,21 +1059,21 @@ const CON={
    ["λ Psc",23.703,1.78,4.50],["ε Psc",1.045,7.89,4.28],["δ Psc",0.816,7.59,4.43],
    ["ν Psc",1.694,5.49,4.44]],
    lines:[[0,8,1],[0,6,7,3,4,2,5,3]],zod:true,
-   find:"Very faint — a big V of two ribbons tied at Alrescha. The easier half is the Circlet, "+
+   find:"Very faint: a big V of two ribbons tied at Alrescha. The easier half is the Circlet, "+
      "a small ring of stars directly below the Great Square of Pegasus. Everything here needs "+
      "a dark sky and patience."},
  "Ursa Major":{full:"Ursa Major, the Great Bear",stars:[["Dubhe",11.062,61.75,1.79],
    ["Merak",11.031,56.38,2.37],["Phecda",11.897,53.69,2.44],["Megrez",12.257,57.03,3.31],
    ["Alioth",12.900,55.96,1.77],["Mizar",13.399,54.93,2.23],["Alkaid",13.792,49.31,1.86]],
    lines:[[0,1,2,3,0],[3,4,5,6]],
-   find:"The signpost for the whole northern sky, and circumpolar from Britain — never sets. "+
+   find:"The signpost for the whole northern sky, and circumpolar from Britain, so it never sets. "+
      "The two stars at the end of the bowl, Dubhe and Merak, are the Pointers: extend them "+
      "about five times their separation and you hit Polaris."},
  "Ursa Minor":{full:"Ursa Minor, the Little Bear",stars:[["Polaris",2.530,89.26,1.98],
    ["Kochab",14.845,74.16,2.08],["Pherkad",15.345,71.83,3.05],["ε UMi",16.766,82.04,4.23],
    ["ζ UMi",15.734,77.79,4.32],["Yildun",17.537,86.59,4.36],["η UMi",16.291,75.76,4.95]],
    lines:[[0,5,3,4,6,1,2,4]],
-   find:"Hangs off Polaris, which sits almost exactly at the north celestial pole — its "+
+   find:"Hangs off Polaris, which sits almost exactly at the north celestial pole; its "+
      "altitude equals your latitude, so about 51° up from southern England. Use the Plough's "+
      "Pointers to find Polaris, then trace the faint handle down to Kochab and Pherkad."},
  Cassiopeia:{full:"Cassiopeia, the Queen",stars:[["Segin",1.906,63.67,3.35],
@@ -995,7 +1081,7 @@ const CON={
    ["Caph",0.153,59.15,2.28]],
    lines:[[4,3,2,1,0]],
    find:"An unmistakable W (or M, depending on the hour) on the opposite side of Polaris from "+
-     "the Plough — when one is high, the other is low. Also circumpolar from Britain, so it is "+
+     "the Plough: when one is high, the other is low. Also circumpolar from Britain, so it is "+
      "always up there somewhere."},
  Orion:{full:"Orion, the Hunter",stars:[["Betelgeuse",5.919,7.41,0.45],["Rigel",5.242,-8.20,0.18],
    ["Bellatrix",5.418,6.35,1.64],["Mintaka",5.533,-0.30,2.23],["Alnilam",5.604,-1.20,1.69],
@@ -1003,33 +1089,33 @@ const CON={
    lines:[[0,2,3,4,5,0],[2,3],[3,1],[5,6],[1,6]],
    find:"The finest constellation in the sky and the key to winter. Three stars in a short "+
      "straight line make the belt; above it sits red Betelgeuse, below it brilliant blue Rigel. "+
-     "The belt points down-left to Sirius and up-right to Aldebaran — half the winter sky can "+
+     "The belt points down-left to Sirius and up-right to Aldebaran. Half the winter sky can "+
      "be found from it."},
  "Canis Major":{full:"Canis Major, the Great Dog",stars:[["Sirius",6.752,-16.72,-1.46],
    ["Mirzam",6.378,-17.96,1.98],["Wezen",7.140,-26.39,1.83],["Adhara",6.977,-28.97,1.50],
    ["Aludra",7.402,-29.30,2.45],["ζ CMa",6.339,-30.06,3.02]],
    lines:[[1,0,2,4],[2,3,5]],
-   find:"Home to Sirius, the brightest star in the night sky — follow Orion's belt down and to "+
+   find:"Home to Sirius, the brightest star in the night sky. Follow Orion's belt down and to "+
      "the left and you cannot miss it. Low from Britain, so it twinkles violently through all "+
      "the atmosphere in the way."},
  Auriga:{full:"Auriga, the Charioteer",stars:[["Capella",5.278,46.00,0.08],
    ["Menkalinan",5.995,44.95,1.90],["θ Aur",5.996,37.21,2.62],["ι Aur",4.950,33.17,2.69],
    ["ε Aur",5.033,43.82,3.03]],
    lines:[[0,1,2,3,0],[0,4]],
-   find:"A big pentagon nearly overhead on winter evenings, anchored by yellow Capella — the "+
+   find:"A big pentagon nearly overhead on winter evenings, anchored by yellow Capella, the "+
      "sixth-brightest star in the sky. Straight up from Orion, past Taurus."},
  Perseus:{full:"Perseus, the Hero",stars:[["Mirfak",3.405,49.86,1.79],["Algol",3.136,40.96,2.12],
    ["ζ Per",3.902,31.88,2.85],["ε Per",3.964,40.01,2.89],["γ Per",3.081,53.51,2.91],
    ["δ Per",3.715,47.79,3.01]],
    lines:[[4,0,5,3,2],[0,1]],
    find:"Between Cassiopeia's W and the Pleiades, lying along the Milky Way. Algol is the "+
-     "famous one — the Demon Star, an eclipsing binary that dims noticeably every 2.87 days."},
+     "famous one: the Demon Star, an eclipsing binary that dims noticeably every 2.87 days."},
  Bootes:{full:"Boötes, the Herdsman",stars:[["Arcturus",14.261,19.18,-0.05],
    ["Izar",14.750,27.07,2.37],["Muphrid",13.911,18.40,2.68],["Seginus",14.535,38.31,3.03],
    ["δ Boo",15.258,33.31,3.47],["Nekkar",15.032,40.39,3.49],["ρ Boo",14.529,30.37,3.58]],
    lines:[[0,1,4,5,3,6,0],[0,2]],
    find:"A kite, or an ice-cream cone, with brilliant orange Arcturus at the point. Follow the "+
-     "arc of the Plough's handle away from the bowl and it takes you straight there — the "+
+     "arc of the Plough's handle away from the bowl and it takes you straight there; the "+
      "brightest star in the northern celestial hemisphere."},
  Lyra:{full:"Lyra, the Lyre",stars:[["Vega",18.615,38.78,0.03],["ε Lyr",18.744,39.67,4.60],
    ["ζ Lyr",18.746,37.60,4.30],["Sheliak",18.834,33.36,3.50],["Sulafat",18.982,32.69,3.24],
@@ -1041,14 +1127,14 @@ const CON={
  Cygnus:{full:"Cygnus, the Swan",stars:[["Deneb",20.690,45.28,1.25],["Albireo",19.512,27.96,3.05],
    ["Sadr",20.371,40.26,2.23],["δ Cyg",19.750,45.13,2.87],["Gienah",20.770,33.97,2.48]],
    lines:[[0,2,1],[3,2,4]],
-   find:"The Northern Cross, flying down the Milky Way — Deneb at the tail, Albireo at the "+
+   find:"The Northern Cross, flying down the Milky Way, with Deneb at the tail, Albireo at the "+
      "beak. Albireo is worth any small telescope: it splits into a gold and blue pair, the "+
      "prettiest double star in the sky."},
  Aquila:{full:"Aquila, the Eagle",stars:[["Altair",19.846,8.87,0.76],["Tarazed",19.771,10.61,2.72],
    ["Alshain",19.921,6.41,3.71],["δ Aql",19.425,3.11,3.36],["ζ Aql",19.090,13.86,2.99],
    ["θ Aql",20.188,-0.82,3.23],["λ Aql",19.106,-4.88,3.43]],
    lines:[[4,1,0,2],[0,3,6],[3,5]],
-   find:"Altair is flanked by a fainter star either side — a distinctive little row of three. "+
+   find:"Altair is flanked by a fainter star either side, a distinctive little row of three. "+
      "It is the southern corner of the Summer Triangle, below and right of Vega."},
  "Canis Minor":{full:"Canis Minor, the Little Dog",stars:[["Procyon",7.655,5.22,0.34],
    ["Gomeisa",7.452,8.29,2.89]],
@@ -1059,7 +1145,7 @@ const CON={
    ["Mimosa",12.795,-59.69,1.25],["Gacrux",12.519,-57.11,1.63],["Imai",12.253,-58.75,2.79],
    ["Ginan",12.356,-60.40,3.59]],
    lines:[[2,0],[3,1]],south:true,
-   find:"The smallest constellation in the sky and the most famous in the south — on five "+
+   find:"The smallest constellation in the sky and the most famous in the south, on five "+
      "national flags. It has no pole star to point at, so you improvise: extend the long axis "+
      "from Gacrux through Acrux about four and a half times and that lands near the south "+
      "celestial pole. Beside it lies the Coalsack, a dark nebula blotting out the Milky Way."},
@@ -1069,7 +1155,7 @@ const CON={
    ["δ Cen",12.140,-50.72,2.60],["ι Cen",13.343,-36.71,2.75]],
    lines:[[0,1,4,3,7],[4,5,6,2],[5,8]],south:true,
    find:"A huge constellation wrapped round Crux. Its two brightest stars, Alpha and Beta "+
-     "Centauri, are the Southern Pointers — a line through them leads to the Southern Cross. "+
+     "Centauri, are the Southern Pointers: a line through them leads to the Southern Cross. "+
      "Alpha Centauri is the nearest star system to the Sun at 4.4 light years, and to the naked "+
      "eye it is a single point; a small telescope splits it into a golden pair."},
  Carina:{full:"Carina, the Keel",stars:[["Canopus",6.399,-52.70,-0.74],
@@ -1089,7 +1175,7 @@ const CON={
  "Triangulum Australe":{full:"Triangulum Australe, the Southern Triangle",
    stars:[["Atria",16.811,-69.03,1.91],["β TrA",15.919,-63.43,2.85],["γ TrA",15.315,-68.68,2.87]],
    lines:[[0,1,2,0]],south:true,
-   find:"A neat, genuinely triangular little constellation south-east of Alpha Centauri — "+
+   find:"A neat, genuinely triangular little constellation south-east of Alpha Centauri, "+
      "brighter and more convincing than its northern namesake."},
  Grus:{full:"Grus, the Crane",stars:[["Alnair",22.137,-46.96,1.74],["Tiaki",22.711,-46.88,2.12],
    ["γ Gru",21.899,-37.36,3.00],["δ Gru",22.487,-43.50,3.97],["ε Gru",22.808,-51.32,3.49],
@@ -1101,14 +1187,14 @@ const CON={
    stars:[["Fomalhaut",22.961,-29.62,1.16],["ε PsA",22.678,-27.04,4.17],["δ PsA",22.936,-32.54,4.20],
    ["β PsA",22.529,-32.35,4.29],["ι PsA",21.745,-33.03,4.34]],
    lines:[[0,1,4,3,2,0]],
-   find:"Fomalhaut, the Lonely One — a bright star in an otherwise empty patch of autumn sky. "+
+   find:"Fomalhaut, the Lonely One, a bright star in an otherwise empty patch of autumn sky. "+
      "From Britain it skims the southern horizon; from the southern hemisphere it rides high. "+
      "It has a dust ring and at least one planet."},
  Pegasus:{full:"Pegasus, the Winged Horse",stars:[["Markab",23.079,15.21,2.48],
    ["Scheat",23.063,28.08,2.42],["Algenib",0.221,15.18,2.83],["Alpheratz",0.140,29.09,2.06],
    ["Enif",21.736,9.88,2.38]],
    lines:[[0,1,3,2,0],[0,4]],
-   find:"The Great Square — four stars marking a large, conspicuously empty box high in the "+
+   find:"The Great Square: four stars marking a large, conspicuously empty box high in the "+
      "autumn sky. One corner, Alpheratz, actually belongs to Andromeda. Count the stars you can "+
      "see inside the Square; it is a good test of how dark your sky is."}
 };
@@ -1117,13 +1203,13 @@ const CON={
    and are described rather than drawn.                                   */
 const ASTER={
  "Ursa Major":[{n:"The Plough",idx:[[0,1,2,3,0],[3,4,5,6]],
-   d:"Seven stars — a bowl and a bent handle. The Plough in Britain and Ireland, the Big Dipper "+
+   d:"Seven stars, a bowl and a bent handle. The Plough in Britain and Ireland, the Big Dipper "+
      "in North America, the Saucepan in France, the Wagon across much of Europe, and Saptarishi, "+
      "the seven sages, in India. It is only an asterism: Ursa Major is far larger, and the Plough "+
      "is just the bear's hindquarters and tail."},
   {n:"The Pointers",idx:[0,1],d:"Dubhe and Merak. Extend the line between them about five times "+
      "and you arrive at Polaris."},
-  {n:"Mizar and Alcor",idx:[5],d:"A naked-eye double — the 'horse and rider'. Traditionally a "+
+  {n:"Mizar and Alcor",idx:[5],d:"A naked-eye double, the 'horse and rider'. Traditionally a "+
      "test of eyesight; Mizar itself splits again in any telescope."}],
  "Ursa Minor":[{n:"The Little Dipper",idx:[[0,5,3,4,6,1,2,4]],
    d:"The same bowl-and-handle shape as the Plough but smaller, fainter and the other way up, "+
@@ -1131,25 +1217,25 @@ const ASTER={
   {n:"The Guardians of the Pole",idx:[1,2],d:"Kochab and Pherkad, wheeling endlessly round "+
      "Polaris."}],
  Cassiopeia:[{n:"The W",idx:[4,3,2,1,0],
-   d:"Five stars in a zigzag. Half the year it is a W, the other half an M — it depends which "+
+   d:"Five stars in a zigzag. Half the year it is a W, the other half an M, depending on which "+
      "side of Polaris it happens to be on."}],
  Orion:[{n:"Orion's Belt",idx:[3,4,5],
    d:"Three bright stars in a near-perfect line, unique in the sky. Also called the Three Kings, "+
      "Jacob's Staff, or the Yardstick. Extend it down-left to Sirius, up-right to Aldebaran."},
   {n:"The Sword",idx:[4],d:"Hangs below the belt, and the fuzzy middle 'star' is the Orion "+
-     "Nebula — a stellar nursery 1,300 light years away, visible to the naked eye."}],
+     "Nebula, a stellar nursery 1,300 light years away, visible to the naked eye."}],
  Taurus:[{n:"The Hyades",idx:[0,3,4,5],
    d:"The V-shaped face of the bull, and the nearest open cluster to us at 150 light years. "+
      "Aldebaran looks like part of it but is a foreground star, less than half as far away."},
   {n:"The Pleiades",idx:[7],
-   d:"The Seven Sisters, or M45 — a knot of hot young stars about 440 light years off. Most "+
+   d:"The Seven Sisters, or M45, a knot of hot young stars about 440 light years off. Most "+
      "people see six with the naked eye; keen eyes and dark skies get nine or more."}],
  Leo:[{n:"The Sickle",idx:[0,7,2,6,8,4],
    d:"A backwards question mark forming the lion's head and mane, with Regulus as the full stop "+
      "at the bottom."}],
  Sagittarius:[{n:"The Teapot",idx:[7,2,0,5,1,4,2],
    d:"Nobody sees an archer; everybody sees a teapot, with a spout, a lid and a handle. The "+
-     "Milky Way rises from the spout like steam — and that is the direction of the galactic centre."}],
+     "Milky Way rises from the spout like steam, and that is the direction of the galactic centre."}],
  Pegasus:[{n:"The Great Square",idx:[[0,1,3,2,0]],
    d:"Four stars marking a conspicuously empty box. One corner, Alpheratz, was handed to "+
      "Andromeda when the constellation boundaries were fixed in 1930. Counting stars inside the "+
@@ -1158,51 +1244,51 @@ const ASTER={
    d:"Stands upright on the north-western horizon on December evenings. Deneb marks the top, "+
      "Albireo the foot."}],
  Pisces:[{n:"The Circlet",idx:[[3,4,2,5,3]],
-   d:"A small ring of faint stars directly below the Great Square — the head of the western fish, "+
+   d:"A small ring of faint stars directly below the Great Square, the head of the western fish, "+
      "and by far the easiest part of Pisces to pick out."}],
  Aquarius:[{n:"The Water Jar",idx:[1,4,3,5],
    d:"A small Y or three-pointed figure just south-east of the Great Square, from which the "+
      "stream of water is poured towards Fomalhaut."}],
  Cancer:[{n:"The Beehive",idx:[5],
-   d:"Praesepe, or M44 — a hazy smudge to the naked eye that binoculars turn into a swarm of "+
+   d:"Praesepe, or M44, a hazy smudge to the naked eye that binoculars turn into a swarm of "+
      "dozens of stars. Galileo was the first to resolve it."}],
  Scorpius:[{n:"The Fish Hook",idx:[0,5,6,7,8,9,10,11,12],
-   d:"The curving tail is Maui's Fishhook in Polynesia — the hook with which the islands were "+
+   d:"The curving tail is Maui's Fishhook in Polynesia, the hook with which the islands were "+
      "hauled from the sea. From Britain most of it never clears the horizon."},
   {n:"The Cat's Eyes",idx:[12],d:"Shaula and Lesath, the close pair at the sting."}],
  Bootes:[{n:"The Kite",idx:[0,1,4,5,3,6,0],
    d:"An elongated kite or ice-cream cone with Arcturus at the pointed end."}],
  Auriga:[{n:"The Kids",idx:[4],
-   d:"Haedi — a small triangle of stars beside Capella, the she-goat. Epsilon Aurigae, one of "+
+   d:"Haedi, a small triangle of stars beside Capella, the she-goat. Epsilon Aurigae, one of "+
      "them, is eclipsed every 27 years by something enormous and still not fully explained."}],
  Gemini:[{n:"The Twins",idx:[1,0],
    d:"Castor and Pollux, close together and nearly equal. Pollux is the brighter and distinctly "+
      "orange; Castor is a remarkable six-star system in disguise."}],
  Lyra:[{n:"The Lyre",idx:[2,5,4,3,2],
-   d:"The small parallelogram hanging below Vega — the body of the harp."}],
+   d:"The small parallelogram hanging below Vega, the body of the harp."}],
  Crux:[{n:"The Southern Cross",idx:[[2,0],[3,1]],
    d:"Four bright stars in a kite, not quite a symmetrical cross. It appears on the flags of "+
-     "Australia, New Zealand, Brazil, Papua New Guinea and Samoa. Beside it the Coalsack — a "+
-     "dark nebula — punches a hole in the Milky Way."}],
+     "Australia, New Zealand, Brazil, Papua New Guinea and Samoa. Beside it the Coalsack, a "+
+     "dark nebula, punches a hole in the Milky Way."}],
  Centaurus:[{n:"The Southern Pointers",idx:[0,1],
    d:"Alpha and Beta Centauri, the two brightest stars in Centaurus. A line through them points "+
      "at Crux, which is how you tell the real Southern Cross from the False Cross."}],
  Carina:[{n:"The Diamond Cross",idx:[[2,3],[5,4]],
-   d:"A larger, fainter cross made from Carina's own stars — one of three cross shapes in this "+
+   d:"A larger, fainter cross made from Carina's own stars, one of three cross shapes in this "+
      "part of the sky, and another reliable way to get lost."}]
 };
 const WIDE=[
  {n:"The Summer Triangle",in:["Lyra","Cygnus","Aquila"],
-  d:"Vega, Deneb and Altair — three bright stars in three different constellations, high overhead "+
+  d:"Vega, Deneb and Altair: three bright stars in three different constellations, high overhead "+
     "on summer and autumn evenings. The Milky Way runs straight through it."},
  {n:"The Winter Triangle",in:["Orion","Canis Major"],
-  d:"Betelgeuse, Sirius and Procyon (in Canis Minor, off this chart) — an almost equilateral "+
+  d:"Betelgeuse, Sirius and Procyon (in Canis Minor, off this chart): an almost equilateral "+
     "triangle dominating the winter south."},
  {n:"The Winter Hexagon",in:["Orion","Taurus","Auriga","Canis Major"],
   d:"A vast ring of six brilliant stars: Rigel, Aldebaran, Capella, Pollux, Procyon and Sirius, "+
     "with Betelgeuse sitting inside it. Six of the twenty brightest stars in the sky, all up at once."},
  {n:"The Spring Triangle",in:["Leo","Bootes","Virgo"],
-  d:"Arcturus, Spica and Denebola — the shape that replaces Orion once winter is over."},
+  d:"Arcturus, Spica and Denebola, the shape that replaces Orion once winter is over."},
  {n:"The False Cross",in:["Carina","Vela"],
   d:"Two stars from Carina and two from Vela make a cross bigger and fainter than the real one, "+
     "and tilted differently. Generations of navigators have been caught out by it; the giveaway "+
@@ -1226,42 +1312,42 @@ const ECLIPSES=[
   path:"Antarctica and the South Atlantic",
   local:[["Southern Argentina & Chile","partial, up to ~60%"],["South Africa","small partial at sunrise"],
          ["UK","not visible"]],
-  note:"A remote one — the ring of fire falls almost entirely on Antarctic ice."},
+  note:"A remote one. The ring of fire falls almost entirely on Antarctic ice."},
  {d:"2026-08-12",k:"solar",t:"Total",dur:"2m 18s",
   path:"Greenland, the western tip of Iceland, then northern Spain and the Balearics at sunset",
   local:[["Reykjavík","totality"],["A Coruña, Oviedo, Bilbao, Zaragoza, Valencia","totality"],
          ["SW Ireland","97.5%"],["Truro, Cornwall","95%"],["Cardiff","~90%"],
-         ["London","~90% — 18:17 to 20:06 BST, maximum 19:12"],["Edinburgh","~90.6%"],
+         ["London","~90%, 18:17 to 20:06 BST, maximum 19:12"],["Edinburgh","~90.6%"],
          ["Paris","~92%"],["New York","small partial at sunset"]],
   note:"The first total eclipse touching Europe since 1999, and the deepest partial from Britain "+
     "for a generation. It happens low in the evening sky, so you want a clear north-western horizon."},
  {d:"2027-02-06",k:"solar",t:"Annular",dur:"7m 51s",
   path:"Chile, Argentina, the South Atlantic and West Africa",
-  local:[["Along the path","93% of the Sun's diameter covered — a thin ring"],
+  local:[["Along the path","93% of the Sun's diameter covered, a thin ring"],
          ["South America","broad partial"],["UK","not visible"]]},
  {d:"2027-08-02",k:"solar",t:"Total",dur:"6m 23s",
   path:"Morocco, southern Spain (Cádiz, Gibraltar), Algeria, Tunisia, Libya, Egypt (Luxor), Saudi Arabia, Yemen, Somalia",
-  local:[["Luxor, Egypt","6m 23s — the longest totality on land this century"],
+  local:[["Luxor, Egypt","6m 23s, the longest totality on land this century"],
          ["Cádiz / Gibraltar","totality"],["Cairo","near-total"],["London","~40%"],
          ["Rome","~85%"],["Athens","~90%"]],
   note:"The big one. More than six minutes of totality over Egypt, in high summer with near-"+
-    "guaranteed clear skies — the most accessible long eclipse for a century."},
+    "guaranteed clear skies. The most accessible long eclipse for a century."},
  {d:"2028-01-26",k:"solar",t:"Annular",dur:"10m 27s",
   path:"Ecuador, Peru, Brazil, Suriname, French Guiana, then Spain and Portugal at sunset",
-  local:[["Along the path","92% covered — over ten minutes of ring"],
+  local:[["Along the path","92% covered, over ten minutes of ring"],
          ["Lisbon / Madrid","annular at sunset"],["London","~60% partial"],["New York","partial"]]},
  {d:"2028-07-22",k:"solar",t:"Total",dur:"5m 10s",
   path:"Western Australia through Sydney, then New Zealand",
-  local:[["Sydney","totality — the first over a major Australian city since 1857"],
+  local:[["Sydney","totality, the first over a major Australian city since 1857"],
          ["Perth","totality"],["Auckland","partial, deep"],["UK","not visible"]]},
- {d:"2029-01-14",k:"solar",t:"Partial",dur:"—",
-  path:"No totality — partial only",
+ {d:"2029-01-14",k:"solar",t:"Partial",dur:"–",
+  path:"No totality, partial only",
   local:[["North America","up to 87%"],["UK","not visible"]]},
- {d:"2029-06-12",k:"solar",t:"Partial",dur:"—",
-  path:"No totality — partial only",
+ {d:"2029-06-12",k:"solar",t:"Partial",dur:"–",
+  path:"No totality, partial only",
   local:[["Arctic, Greenland, northern Europe","up to 45%"],["Scotland","small partial"]]},
- {d:"2029-12-05",k:"solar",t:"Partial",dur:"—",
-  path:"No totality — partial only",
+ {d:"2029-12-05",k:"solar",t:"Partial",dur:"–",
+  path:"No totality, partial only",
   local:[["Antarctica, southern Chile and Argentina","up to 89%"],["UK","not visible"]]},
  {d:"2030-06-01",k:"solar",t:"Annular",dur:"5m 21s",
   path:"Algeria, Tunisia, Libya, Malta, Greece, Turkey, Bulgaria, Ukraine, Russia, Kazakhstan, China, Japan",
@@ -1274,88 +1360,88 @@ const ECLIPSES=[
  {d:"2026-08-28",k:"lunar",t:"Partial",dur:"96% of the Moon in shadow",
   path:"East Asia, Australia, the Pacific and the Americas",
   local:[["Pacific & Americas","best placed"],["Australia & East Asia","good"],
-         ["UK","poorly placed — the Moon is below the horizon for most of it"]],
+         ["UK","poorly placed: the Moon is below the horizon for most of it"]],
   note:"Very nearly total: at maximum only a sliver of the Moon stays out of the umbra."},
- {d:"2028-01-12",k:"lunar",t:"Partial",dur:"—",
+ {d:"2028-01-12",k:"lunar",t:"Partial",dur:"–",
   path:"The Americas, Europe and Africa",local:[["UK","visible"]]},
- {d:"2028-07-06",k:"lunar",t:"Partial",dur:"—",
+ {d:"2028-07-06",k:"lunar",t:"Partial",dur:"–",
   path:"East Asia, Australia, the Pacific and the Americas",local:[["UK","not visible"]]},
- {d:"2028-12-31",k:"lunar",t:"Total",dur:"—",
+ {d:"2028-12-31",k:"lunar",t:"Total",dur:"–",
   path:"The Americas, Europe, Africa, western Asia",
-  local:[["UK","fully visible — a total eclipse to see the year out"]],
+  local:[["UK","fully visible, a total eclipse to see the year out"]],
   note:"A blood moon on New Year's Eve, well placed for Britain."},
- {d:"2029-06-26",k:"lunar",t:"Total",dur:"—",
+ {d:"2029-06-26",k:"lunar",t:"Total",dur:"–",
   path:"The Americas, western and central Europe, Africa, Antarctica",
   local:[["UK","visible"]]},
- {d:"2029-12-20",k:"lunar",t:"Total",dur:"—",
+ {d:"2029-12-20",k:"lunar",t:"Total",dur:"–",
   path:"Europe, Africa, Asia and the Americas",local:[["UK","visible"]]},
 
  /* --- 2031 to 2035, from the NASA / EclipseWise decade tables --- */
- {d:"2031-05-07",k:"lunar",t:"Penumbral",dur:"—",
+ {d:"2031-05-07",k:"lunar",t:"Penumbral",dur:"–",
   path:"The Americas, Europe and Africa",local:[["UK","visible, but a penumbral is subtle"]]},
  {d:"2031-05-21",k:"solar",t:"Annular",dur:"5m 26s",
   path:"Angola, Congo, Zambia, Tanzania, southern India, Malaysia, Indonesia",
   local:[["Along the path","a long ring of fire"],["Africa, southern Asia, Australia","partial"],
          ["UK","not visible"]]},
- {d:"2031-06-05",k:"lunar",t:"Penumbral",dur:"—",
+ {d:"2031-06-05",k:"lunar",t:"Penumbral",dur:"–",
   path:"The East Indies, Australia and the Pacific",local:[["UK","not visible"]]},
- {d:"2031-10-30",k:"lunar",t:"Penumbral",dur:"—",path:"The Americas",
+ {d:"2031-10-30",k:"lunar",t:"Penumbral",dur:"–",path:"The Americas",
   local:[["UK","not visible"]]},
  {d:"2031-11-14",k:"solar",t:"Hybrid",dur:"1m 08s",
   path:"The Pacific and Panama",
-  local:[["Along the path","hybrid — annular at each end, total in the middle"],
+  local:[["Along the path","hybrid: annular at each end, total in the middle"],
          ["Southern USA, Central America","partial"],["UK","not visible"]],
   note:"A hybrid is the rarest kind: Earth's curvature means the Moon is just barely big enough "+
     "to cover the Sun in the middle of the track and just barely too small at either end."},
- {d:"2032-04-25",k:"lunar",t:"Total",dur:"—",
+ {d:"2032-04-25",k:"lunar",t:"Total",dur:"–",
   path:"Africa, Asia, Australia and the Pacific",local:[["UK","not visible"]]},
  {d:"2032-05-09",k:"solar",t:"Annular",dur:"22s",
   path:"The South Atlantic",
   local:[["Southern South America, southern Africa","partial"],["UK","not visible"]],
-  note:"Twenty-two seconds of ring, over open ocean — one for the completists."},
- {d:"2032-10-18",k:"lunar",t:"Total",dur:"—",
+  note:"Twenty-two seconds of ring, over open ocean. One for the completists."},
+ {d:"2032-10-18",k:"lunar",t:"Total",dur:"–",
   path:"Africa, Europe, Asia and Australia",local:[["UK","fully visible"]],
   note:"The next total lunar eclipse well placed for Britain after 2029."},
- {d:"2032-11-03",k:"solar",t:"Partial",dur:"—",path:"No totality — partial only, across Asia",
+ {d:"2032-11-03",k:"solar",t:"Partial",dur:"–",path:"No totality, partial only, across Asia",
   local:[["UK","not visible"]]},
  {d:"2033-03-30",k:"solar",t:"Total",dur:"2m 37s",
   path:"Eastern Russia and Alaska",
   local:[["Along the path","totality over Arctic wilderness"],["North America","partial"],
          ["UK","not visible"]]},
- {d:"2033-04-14",k:"lunar",t:"Total",dur:"—",
+ {d:"2033-04-14",k:"lunar",t:"Total",dur:"–",
   path:"Europe, Africa, Asia and Australia",local:[["UK","visible"]]},
- {d:"2033-09-23",k:"solar",t:"Partial",dur:"—",
-  path:"No totality — partial only",
+ {d:"2033-09-23",k:"solar",t:"Partial",dur:"–",
+  path:"No totality, partial only",
   local:[["Southern South America, Antarctica","partial"],["UK","not visible"]]},
- {d:"2033-10-08",k:"lunar",t:"Total",dur:"—",
+ {d:"2033-10-08",k:"lunar",t:"Total",dur:"–",
   path:"Asia, Australia, the Pacific and the Americas",local:[["UK","not visible"]]},
  {d:"2034-03-20",k:"solar",t:"Total",dur:"4m 09s",
   path:"Nigeria, Cameroon, Chad, Sudan, Egypt, Saudi Arabia, Iran, Afghanistan, Pakistan, India, China",
   local:[["Along the path","over four minutes of totality"],["Egypt & Saudi Arabia","totality"],
          ["Europe including the UK","a small partial"],["Cairo","near the centre line"]],
-  note:"The other really attractive one this decade — four minutes over the Nile and the Red Sea, "+
+  note:"The other really attractive one this decade: four minutes over the Nile and the Red Sea, "+
     "and the second time in seven years that Egypt is the place to be."},
- {d:"2034-04-03",k:"lunar",t:"Penumbral",dur:"—",
+ {d:"2034-04-03",k:"lunar",t:"Penumbral",dur:"–",
   path:"Europe, Africa, Asia and Australia",local:[["UK","visible, but faint"]]},
  {d:"2034-09-12",k:"solar",t:"Annular",dur:"2m 58s",
   path:"Chile, Bolivia, Argentina, Paraguay and Brazil",
   local:[["Along the path","nearly three minutes of ring"],
          ["Central and South America","partial"],["UK","not visible"]]},
- {d:"2034-09-28",k:"lunar",t:"Partial",dur:"—",
+ {d:"2034-09-28",k:"lunar",t:"Partial",dur:"–",
   path:"The Americas, Europe and Africa",local:[["UK","visible"]]},
- {d:"2035-02-22",k:"lunar",t:"Penumbral",dur:"—",
+ {d:"2035-02-22",k:"lunar",t:"Penumbral",dur:"–",
   path:"Asia, the Pacific and the Americas",local:[["UK","not visible"]]},
  {d:"2035-03-09",k:"solar",t:"Annular",dur:"48s",
   path:"New Zealand and the South Pacific",
   local:[["New Zealand","annular"],["Australia, southern Pacific","partial"],["UK","not visible"]]},
- {d:"2035-08-19",k:"lunar",t:"Partial",dur:"—",
+ {d:"2035-08-19",k:"lunar",t:"Partial",dur:"–",
   path:"The Americas, Europe, Africa and the Middle East",local:[["UK","visible"]]},
  {d:"2035-09-02",k:"solar",t:"Total",dur:"2m 54s",
   path:"China, Korea, Japan and the Pacific",
   local:[["Along the path","totality across northern China, the Koreas and central Japan"],
          ["Tokyo","just inside the northern edge of the path"],
          ["East Asia","broad partial"],["UK","not visible"]],
-  note:"The first totality over a Japanese metropolitan area since 1887 — expect it to be the "+
+  note:"The first totality over a Japanese metropolitan area since 1887. Expect it to be the "+
     "most-watched eclipse in history."}
 ];
 
@@ -1503,15 +1589,62 @@ function applyView(){
   const h=viewH();
   svg.setAttribute("viewBox",view.x.toFixed(2)+" "+view.y.toFixed(2)+" "+
     view.w.toFixed(2)+" "+h.toFixed(2));
-  const k=view.w/1000;
-  nodes.forEach(nd=>nd.lab.setAttribute("transform",
-    "translate(0,"+(-nd.sysOuter-8).toFixed(1)+") scale("+k.toFixed(3)+")"));
+  const k=textK();
+  placeLabels();
   /* scale() alone would multiply the label's own x/y and slide it across
-     the screen — translate first, then scale about that point */
+     the screen, so translate first, then scale about that point */
   BELTS.forEach(B=>B.lab.setAttribute("transform",
     "translate("+B.lx.toFixed(1)+","+B.ly.toFixed(1)+") scale("+k.toFixed(3)+")"));
   zodLabels.forEach(z=>z.g.setAttribute("transform",
     "translate("+z.x.toFixed(1)+","+z.y.toFixed(1)+") scale("+k.toFixed(3)+")"));
+}
+/* Text keeps a steady size on screen. Dividing by the stage's width in
+   pixels cancels the viewBox scaling; the clamp lets it grow a little on a
+   big monitor without doubling on an ultrawide one. */
+function textK(){
+  const px=svg.getBoundingClientRect().width||1000;
+  return view.w/px*cl(px/1000,0.85,1.15);
+}
+/* Labels go above their body unless that would overlap a label already
+   placed or another body; then below, right or left. Planets are placed
+   first. A dwarf planet or comet with nowhere free loses its label until
+   there is room again. */
+const LABEL_SIDES=["above","below","right","left"];
+const labelOrder=()=>nodes.slice().sort((a,b)=>rank(a)-rank(b));
+const rank=nd=>nd.b.t==="planet"?0:(nd.b.t==="dwarf"?1:2);
+let labelsOn=true;
+function placeLabels(){
+  if(!labelsOn) return;
+  const k=textK(), h=11.5*k, placed=[];
+  const live=nodes.filter(nd=>nd.pos&&nd.g.style.display!=="none");
+  const hitsBody=(bx,self)=>live.some(o=>{
+    if(o===self) return false;
+    const r=o.sysOuter*0.8, cx=cl(o.pos[0],bx[0],bx[0]+bx[2]), cy=cl(o.pos[1],bx[1],bx[1]+bx[3]);
+    return (cx-o.pos[0])**2+(cy-o.pos[1])**2<r*r;});
+  const hitsLabel=bx=>placed.some(q=>bx[0]<q[0]+q[2]&&q[0]<bx[0]+bx[2]&&bx[1]<q[1]+q[3]&&q[1]<bx[1]+bx[3]);
+  labelOrder().forEach(nd=>{
+    if(!nd.pos||nd.g.style.display==="none") return;
+    if(!nd.labW){ const L=nd.lab.getComputedTextLength(); if(L>0) nd.labW=L; }
+    const w=(nd.labW||nd.b.n.length*6.4)*k, R=nd.sysOuter, x0=nd.pos[0], y0=nd.pos[1];
+    const spot=side=>{
+      if(side==="above") return {x:0,y:-R-8,a:"middle",box:[x0-w/2,y0-R-8-h*0.8,w,h]};
+      if(side==="below") return {x:0,y:R+6+h*0.8,a:"middle",box:[x0-w/2,y0+R+6,w,h]};
+      if(side==="right") return {x:R+6,y:h*0.35,a:"start",box:[x0+R+6,y0-h*0.45,w,h]};
+      return {x:-R-6,y:h*0.35,a:"end",box:[x0-R-6-w,y0-h*0.45,w,h]};
+    };
+    const tries=nd.side?[nd.side,...LABEL_SIDES.filter(x=>x!==nd.side)]:LABEL_SIDES;
+    let pick=null;
+    for(const side of tries){
+      const sp=spot(side);
+      if(!hitsLabel(sp.box)&&!hitsBody(sp.box,nd)){pick=sp; nd.side=side; break;}
+    }
+    if(!pick&&rank(nd)===0){ nd.side="above"; pick=spot("above"); }
+    if(!pick){ nd.lab.style.visibility="hidden"; return; }
+    nd.lab.style.visibility="";
+    placed.push(pick.box);
+    nd.lab.setAttribute("text-anchor",pick.a);
+    nd.lab.setAttribute("transform","translate("+pick.x.toFixed(1)+","+pick.y.toFixed(1)+") scale("+k.toFixed(3)+")");
+  });
 }
 function centreView(w){
   view.w=w; view.x=CX-w/2; view.y=CY-viewH()/2; applyView();
@@ -1668,18 +1801,18 @@ function select(o){
       "<dt>Semi-major axis</dt><dd>"+e.a.toFixed(e.a<10?3:2)+" AU</dd>"+
       "<dt></dt><dd>"+kmS(e.a)+"</dd>"+
       "<dt>Eccentricity</dt><dd>"+e.e.toFixed(4)+"</dd>"+
-      "<dt>Inclination</dt><dd>"+(e.i*R2D).toFixed(2)+"°</dd>"+
+      "<dt>Inclination</dt><dd>"+fx(e.i*R2D,2)+"°</dd>"+
       "<dt>Perihelion</dt><dd>"+q.toFixed(2)+" AU</dd>"+
       "<dt>Aphelion</dt><dd>"+Q.toFixed(2)+" AU</dd>"+
-      "<dt>From the Sun now</dt><dd id='rnow'>—</dd>"+
-      "<dt>From Earth now</dt><dd id='enow'>—</dd>"+
-      "<dt>Light time</dt><dd id='ltime'>—</dd>"+
-      (o.n==="Earth"?"":"<dt>Apparent size</dt><dd id='asize'>—</dd>")+
+      "<dt>From the Sun now</dt><dd id='rnow'>–</dd>"+
+      "<dt>From Earth now</dt><dd id='enow'>–</dd>"+
+      "<dt>Light time</dt><dd id='ltime'>–</dd>"+
+      (o.n==="Earth"?"":"<dt>Apparent size</dt><dd id='asize'>–</dd>")+
       "<dt>Diameter</dt><dd>"+(o.d<50?o.d+" km":o.d.toLocaleString("en-GB")+" km")+"</dd>"+
       "<dt>Day length</dt><dd>"+o.day+"</dd>"+
       (o.t==="comet"?"":"<dt>Confirmed moons</dt><dd>"+o.moons+"</dd>")+
     "</dl>"+
-    (o.n==="Earth"?"":"<div class='sub'>In the sky from Earth</div><div class='sky' id='skyinfo'>—</div>"+
+    (o.n==="Earth"?"":"<div class='sub'>In the sky from Earth</div><div class='sky' id='skyinfo'>–</div>"+
       "<p class='legend' id='oppinfo' style='margin:-6px 0 14px'></p>")+
     "<p class='note'>"+o.note+"</p>"+
     (o.n==="Earth"?"":"<div class='sub'>Apparent path against the stars</div>"+
@@ -1701,9 +1834,9 @@ function select(o){
       const inner=o.a<1;
       const mx=nextExtreme(o,true), mn=nextExtreme(o,false);
       if(inner) oi.innerHTML=(mx?"Next greatest elongation "+fmtDate(mx.t)+" at "+
-        mx.v.toFixed(0)+"° — the best chance to catch it. ":"")+
+        mx.v.toFixed(0)+"°, the best chance to catch it. ":"")+
         (mn?"Next conjunction with the Sun "+fmtDate(mn.t)+".":"");
-      else oi.innerHTML=(mx?"Next opposition "+fmtDate(mx.t)+" — closest, brightest and up all "+
+      else oi.innerHTML=(mx?"Next opposition "+fmtDate(mx.t)+", when it is closest, brightest and up all "+
         "night. ":"")+(mn?"Next solar conjunction "+fmtDate(mn.t)+", when it is lost in the "+
         "glare.":"");
     }
@@ -1731,25 +1864,25 @@ function tonight(){
   const naked=rows.filter(r=>r.t==="planet");
   const good=naked.filter(r=>r.vis);
   panel.innerHTML=
-    "<div class='kind' style='margin-top:4px'>Tonight — <span id='ovdate'>"+fmtDate(T)+"</span></div>"+
+    "<div class='kind' style='margin-top:4px'>Tonight, <span id='ovdate'>"+fmtDate(T)+"</span></div>"+
     "<div class='moonrow'><span id='moonpic'></span><div><b>"+phaseName(m.el)+"</b><br>"+
       Math.round(m.lit*100)+"% lit &middot; "+m.age.toFixed(1)+" days old<br>"+
       "in "+constellation(m.lam)+" &middot; "+Math.round(m.dist).toLocaleString("en-GB")+" km"+
       (nw?"<br>New moon "+fmtDate(nw):"")+(nf?" &middot; full "+fmtDate(nf):"")+"</div></div>"+
     "<div class='sub' style='margin-top:0'>Planets, best first</div>"+
-    naked.map(r=>"<p class='tonight'><b>"+r.n+"</b> — "+
+    naked.map(r=>"<p class='tonight'><b>"+r.n+"</b>: "+
       (r.el<10?"too close to the Sun to see"
         :(r.el>150?"near opposition, up all night":
           (r.east?"evening sky":"morning sky")+", "+Math.round(r.el)+"° from the Sun"))+
       ", in "+r.con+". "+r.sz.toFixed(1)+"″ across.</p>").join("")+
     "<div class='sub'>Dwarf planets</div>"+
     "<p class='tonight'>"+rows.filter(r=>r.t==="dwarf").map(r=>r.n+" in "+r.con).join(", ")+
-      " — all far too faint for the naked eye; Ceres and Pluto are within reach of a good "+
+      ". All far too faint for the naked eye; Ceres and Pluto are within reach of a good "+
       "telescope, the rest are not.</p>"+
     "<p class='legend' style='margin-top:14px'>"+good.length+" of the eight planets are far enough "+
     "from the Sun to be worth looking for. Click any body for its numbers and its retrograde loop, "+
     "or use the constellation lookup for star charts. The outer ring is ecliptic longitude, marked "+
-    "with the thirteen constellations the ecliptic really crosses — Ophiuchus included, and none of "+
+    "with the thirteen constellations the ecliptic really crosses, Ophiuchus included, and none of "+
     "them 30° wide.</p>";
   const holder=document.getElementById("moonpic");
   if(holder) holder.appendChild(drawPhase(m.el,64));
@@ -1808,13 +1941,13 @@ function moonPanel(shift){
     "<div class='calgrid'>"+cells+"</div>"+
     "<p class='legend'>"+(marks.length?marks.map(v=>
       "<b>"+v.n+"</b> "+v.d+" "+MON[mo].slice(0,3)+" at "+v.h+" UTC").join(" &middot; ")+". ":"")+
-      "Discs are drawn as seen from the "+(HEMI?"southern":"northern")+" hemisphere — "+
+      "Discs are drawn as seen from the "+(HEMI?"southern":"northern")+" hemisphere: "+
       "a waxing Moon is lit on the "+(HEMI?"left":"right")+". Click a day to set the orrery to it.</p>"+
     "<div class='sub'>Right now</div>"+
     "<div class='moonrow'><span id='moonpic'></span><div><b>"+phaseName(m.el)+"</b><br>"+
       Math.round(m.lit*100)+"% lit &middot; "+m.age.toFixed(1)+" days old<br>in "+
       constellation(m.lam)+" &middot; "+Math.round(m.dist).toLocaleString("en-GB")+" km</div></div>"+
-    "<p class='legend'>The synodic month — new Moon to new Moon — averages 29.53 days, but any "+
+    "<p class='legend'>The synodic month (new Moon to new Moon) averages 29.53 days, but any "+
     "individual one runs from about 29.27 to 29.83 days because both the Moon's orbit and Earth's "+
     "are ellipses. Distance swings from roughly 356,500 km at perigee to 406,700 at apogee, which "+
     "is where 'supermoon' comes from: about 14% wider and a third brighter than at apogee.</p>";
@@ -1853,7 +1986,7 @@ function eclipsePanel(){
       "<b><span class='pill "+e.k+"'>"+(e.k==="solar"?"Solar":"Lunar")+"</span>"+e.t+
         " &middot; "+e.d.split("-").reverse().join("/")+
         (past?"<span class='gone'>past</span>":"")+"</b>"+
-      "<span class='where'>"+e.path+(e.dur&&e.dur!=="—"?" &middot; <b>"+e.dur+"</b>":"")+"</span>"+
+      "<span class='where'>"+e.path+(e.dur&&e.dur!=="–"?" &middot; <b>"+e.dur+"</b>":"")+"</span>"+
       "<table class='loc'>"+e.local.map(l=>"<tr><td>"+l[0]+"</td><td>"+l[1]+"</td></tr>").join("")+
       "</table>"+(e.note?"<span class='where'>"+e.note+"</span>":"")+"</div>";
   }).join("")||"<p class='legend'>Nothing matches that filter.</p>";
@@ -1865,7 +1998,7 @@ function eclipsePanel(){
     "<p class='legend'>Tap an entry to set the orrery to that date. Percentages are the fraction of "+
     "the Sun covered at maximum from that place; totality is only ever seen from inside a path a "+
     "few hundred kilometres wide, and a mile outside it you see nothing but a deep partial.</p>"+
-    "<p class='legend'>This table is <b>published data, not model output</b> — dates, types and "+
+    "<p class='legend'>This table is <b>published data, not model output</b>. Dates, types and "+
     "durations come from the NASA and EclipseWise decade catalogues, and the UK figures for August "+
     "2026 from the Royal Observatory. Predicting a path of totality needs Besselian elements and a "+
     "full lunar theory; the abridged one driving the phase calendar here is nowhere near precise "+
@@ -2076,7 +2209,7 @@ function drawRetro(o){
     const dur=Math.round(win.ep[1]-win.ep[0]);
     txt += (win.ep[0]>T?"Its next backward loop runs ":(win.ep[1]<T?"Its last backward loop ran ":
       "The loop shown runs "))+fmtDate(win.ep[0])+" to "+fmtDate(win.ep[1])+
-      " — "+dur+" days, covering "+dl.toFixed(1)+"° of sky. ";
+      ": "+dur+" days, covering "+dl.toFixed(1)+"° of sky. ";
   }
   txt += "Nothing is actually reversing: Earth is overtaking on the inside of the track"+
     (o.a<1?", or being overtaken":"")+", and the line of sight swings backwards for a while.";
@@ -2122,12 +2255,12 @@ function showConstellation(key){
       "<dt>Best evening months</dt><dd>"+bestMonths(ra0)+"</dd>"+
       "<dt>Highest from "+Math.abs(OBS_LAT).toFixed(1)+"°"+(OBS_LAT>0?"N":"S")+"</dt><dd>"+
         (never?"never rises":maxAlt.toFixed(0)+"° up")+"</dd>"+
-      "<dt>Visibility</dt><dd>"+(circ?"circumpolar — never sets":(never?"below the horizon":
+      "<dt>Visibility</dt><dd>"+(circ?"circumpolar, never sets":(never?"below the horizon":
         (partly?"partly below the horizon":"rises and sets")))+"</dd>"+
       (c.zod?"<dt>Planets there now</dt><dd>"+(here.length?here.join(", "):"none")+"</dd>":"")+
     "</dl>"+
     "<p class='note'><b>"+c.full+".</b> "+c.find+
-      (never?" <b>From "+SITES[HEMI].n+" it never rises at all</b> — this chart is what you would "+
+      (never?" <b>From "+SITES[HEMI].n+" it never rises at all</b>. This chart is what you would "+
         "see if you travelled to the other hemisphere.":
        (partly?" From "+SITES[HEMI].n+", "+hidden.length+" of these stars ("+
         hidden.map(s=>s[0]).join(", ")+") never clear the horizon.":""))+"</p>"+
@@ -2135,16 +2268,16 @@ function showConstellation(key){
       "<div id='asterlist'>"+c.aster.map((a,i)=>
         "<div class='ast' data-i='"+i+"'><b>"+a.n+"</b><span>"+a.d+"</span></div>").join("")+
       "</div><p class='legend'>Tap a name to pick it out on the chart. An asterism is a "+
-      "recognised pattern, not an official constellation — the boundaries drawn up by the IAU in "+
+      "recognised pattern, not an official constellation; the boundaries drawn up by the IAU in "+
       "1930 often cut straight across them.</p>":"")+
     (WIDE.filter(w=>w.in.indexOf(key)>=0).length?"<div class='sub'>It also forms part of</div>"+
       WIDE.filter(w=>w.in.indexOf(key)>=0).map(w=>
         "<div class='ast wide'><b>"+w.n+"</b><span>"+w.d+"</span></div>").join(""):"")+
-    "<p class='legend'>Star sizes follow brightness. The dashed line is the ecliptic — the path "+
+    "<p class='legend'>Star sizes follow brightness. The dashed line is the ecliptic, the path "+
     "the Sun, Moon and planets follow. Principal pattern stars only, drawn as they appear from "+
-    (HEMI?"the <b>southern</b> hemisphere — facing north, so the pattern is turned through 180° "+
+    (HEMI?"the <b>southern</b> hemisphere, facing north, so the pattern is turned through 180° "+
       "from the northern view. Orion becomes the Saucepan and the Moon's crescent opens the other way."
-     :"the <b>northern</b> hemisphere — facing south, north up and east to the left.")+"</p>";
+     :"the <b>northern</b> hemisphere, facing south, with north up and east to the left.")+"</p>";
   drawChart(c,ra0,dec0);
   const list=document.getElementById("asterlist");
   if(list) list.addEventListener("click",ev=>{
@@ -2326,7 +2459,7 @@ document.getElementById("scale").addEventListener("click",e=>{
 document.getElementById("zoomout").addEventListener("click",()=>{
   centreView(1000);});
 document.getElementById("tglLabels").addEventListener("click",e=>{
-  const on=e.target.classList.toggle("on");
+  const on=labelsOn=e.target.classList.toggle("on"); placeLabels();
   nodes.forEach(nd=>nd.lab.style.display=on?"":"none");
   beltLabels.style.display=on?"":"none";});
 document.getElementById("tglBelts").addEventListener("click",e=>{
@@ -2346,7 +2479,7 @@ function orbitVis(){
 document.getElementById("tglComets").addEventListener("click",e=>{
   showComets=e.target.classList.toggle("on");
   nodes.forEach(nd=>{if(nd.b.t==="comet") nd.g.style.display=showComets?"":"none";});
-  orbitVis();});
+  orbitVis(); placeLabels();});
 document.getElementById("tglOrbits").addEventListener("click",e=>{
   showOrbits=e.target.classList.toggle("on"); orbitVis();});
 document.getElementById("tglZodiac").addEventListener("click",e=>{
@@ -2398,7 +2531,7 @@ function buildConList(){
   const add=(label,names)=>{
     const vis=names.filter(n=>!neverRises(CON[n].dec));
     const hid=names.filter(n=>neverRises(CON[n].dec));
-    [[label,vis],[label+" — never rises from "+site,hid]].forEach(g=>{
+    [[label,vis],[label+": never rises from "+site,hid]].forEach(g=>{
       if(!g[1].length) return;
       const og=document.createElement("optgroup"); og.label=g[0];
       g[1].forEach(n=>{
@@ -2447,8 +2580,22 @@ document.getElementById("hemi").addEventListener("click",e=>{
   else if(panel.querySelector(".calgrid")) moonPanel(0);
   else if(!selected) tonight();
 });
-document.getElementById("moonbtn").addEventListener("click",()=>showTab("moon"));
-document.getElementById("eclbtn").addEventListener("click",()=>showTab("ecl"));
+
+/* ---------- the date button and the drop-down menus ------------------ */
+const datebox=document.querySelector(".datebox");
+document.getElementById("datebtn").addEventListener("click",()=>{
+  syncPicker();
+  try{ datepick.showPicker(); }
+  catch(err){ datebox.classList.add("open"); datepick.focus(); }
+});
+datepick.addEventListener("change",()=>datebox.classList.remove("open"));
+const menus=[...document.querySelectorAll("details.menu")];
+menus.forEach(m=>m.addEventListener("toggle",()=>{
+  if(m.open) menus.forEach(o=>{if(o!==m) o.open=false;});}));
+document.addEventListener("pointerdown",e=>{
+  menus.forEach(m=>{if(m.open&&!m.contains(e.target)) m.open=false;});});
+document.getElementById("events").addEventListener("change",()=>{
+  document.getElementById("viewmenu").open=false;});
 
 /* ---------- tabs, field mode and night vision ---------------------- */
 const tabs=document.getElementById("tabs"), tabpick=document.getElementById("tabpick");
@@ -2530,7 +2677,10 @@ svg.addEventListener("click",e=>{
 window.addEventListener("keydown",e=>{
   if(e.target.tagName==="INPUT"||e.target.tagName==="SELECT") return;
   if(e.code==="Space"){e.preventDefault();document.getElementById("play").click();}
-  else if(e.key==="Escape") select(null);
+  else if(e.key==="Escape"){
+    const m=menus.find(x=>x.open);
+    if(m){m.open=false;} else select(null);
+  }
   else if(e.key==="ArrowRight"){T+=e.shiftKey?30:1; relayout();}
   else if(e.key==="ArrowLeft"){T-=e.shiftKey?30:1; relayout();}
 });
@@ -2573,6 +2723,7 @@ function frame(now){
       nd.trailEl.setAttribute("d",d);
     }
   });
+  if(frameN%4===0) placeLabels();
   /* depth sort so bodies below the ecliptic pass behind */
   const sorted=nodes.slice().sort((a,b)=>b.depth-a.depth);
   let changed=false;
@@ -2619,9 +2770,9 @@ function frame(now){
       const dx=nd.v.x-earth.x,dy=nd.v.y-earth.y,dz=nd.v.z-earth.z;
       const D=Math.sqrt(dx*dx+dy*dy+dz*dz);
       const en=document.getElementById("enow"), lt=document.getElementById("ltime");
-      if(en) en.textContent=(nd.b.n==="Earth"?"—":D.toFixed(2)+" AU");
+      if(en) en.textContent=(nd.b.n==="Earth"?"–":D.toFixed(2)+" AU");
       if(lt){const mins=D*499.005/60;
-        lt.textContent=nd.b.n==="Earth"?"—":(mins<60?mins.toFixed(1)+" min":(mins/60).toFixed(1)+" h");}
+        lt.textContent=nd.b.n==="Earth"?"–":(mins<60?mins.toFixed(1)+" min":(mins/60).toFixed(1)+" h");}
       const az=document.getElementById("asize");
       if(az&&nd.b.n!=="Earth"){const a=arcsec(nd.b.d,D);
         az.textContent=a<1?(a*1000).toFixed(0)+" mas":a.toFixed(a<10?2:1)+"″";}
@@ -2635,12 +2786,12 @@ function frame(now){
         let rel=((lamB-lamS)%360+360)%360;           // east of the Sun = evening
         const east=rel<180;
         let when = elong<9 ? "lost in the Sun's glare"
-                 : elong>150 ? "near opposition — up all night, and at its best"
+                 : elong>150 ? "near opposition, up all night and at its best"
                  : (east?"an evening object, setting after the Sun"
                         :"a morning object, rising before the Sun");
         sky.innerHTML="It lies in <b>"+constellation(lamB)+"</b>, "+
-          elong.toFixed(0)+"° from the Sun — "+when+". Ecliptic longitude "+
-          (((lamB%360)+360)%360).toFixed(1)+"°, latitude "+(betB>=0?"+":"")+betB.toFixed(1)+"°.";
+          elong.toFixed(0)+"° from the Sun, "+when+". Ecliptic longitude "+
+          (((lamB%360)+360)%360).toFixed(1)+"°, latitude "+(+fx(betB,1)>0?"+":"")+fx(betB,1)+"°.";
       }
     }
   }
@@ -2676,43 +2827,47 @@ if(location.protocol==="http:"||location.protocol==="https:"){
       .register("service-worker.js").catch(()=>{}));
 }
 
-document.getElementById("foot").innerHTML=
+document.getElementById("foot").innerHTML=[
  "<b>Positions.</b> The eight planets and Pluto use JPL's Keplerian elements for approximate positions "+
  "(J2000 epoch with linear rates, valid roughly 1800–2050); they should be right to a few arcminutes. "+
  "Ceres, Haumea, Makemake, Eris and the two comets use fixed osculating elements with a mean motion, which is "+
  "good to a fraction of a degree over this era but is not survey grade. Perturbations between planets are ignored "+
- "entirely, so run the clock far enough and the outer planets will drift from reality. "+
+ "entirely, so run the clock far enough and the outer planets will drift from reality.",
  "<b>Geometry.</b> Inclinations and nodes are real, so the tilt control shows the true three-dimensional "+
  "arrangement. Only in <i>true</i> scale is each drawn curve a geometrically exact ellipse with the Sun at a "+
  "focus; the compressed and square-root scales bend the radius to fit everything on one page, which flattens the "+
- "ellipses but keeps the ordering and the crossings honest. Planet sizes are not to scale in any mode — use the "+
- "size comparison in the panel for that. <b>Surfaces</b> are procedurally generated from spacecraft descriptions, "+
+ "ellipses but keeps the ordering and the crossings honest. Planet sizes are not to scale in any mode; the "+
+ "size comparison in the panel shows them properly.",
+ "<b>Surfaces</b> are procedurally generated from spacecraft descriptions, "+
  "not photographic textures ("+renderMs+" ms to build). The panel portrait rotates in the correct direction, "+
  "Venus and Uranus backwards, but at a watchable rate rather than the true day length. Moons in the orbit "+
  "view are enlarged to be visible, but they keep their true orbital periods on the simulation clock, so "+
- "the speed control governs them too — the moon-system inset in the panel is the exception, running at a "+
- "steady readable pace whatever the clock is doing. Their starting phases are arbitrary; only the rates "+
- "are real. Moon counts confirmed to April 2026. "+
+ "the speed control governs them too. The moon-system inset in the panel is the exception: it runs at a "+
+ "steady, readable pace whatever the clock is doing. Their starting phases are arbitrary; only the rates "+
+ "are real. Moon counts confirmed to April 2026.",
  "<b>The sky panel</b> converts each body's position into the view from Earth: elongation from the Sun, "+
  "whether it is a morning or evening object, and which constellation it falls in by the IAU boundaries. "+
- "That last point is why Ophiuchus appears on the outer ring and the spans are unequal — these are the real "+
+ "That is why Ophiuchus appears on the outer ring and the spans are unequal: these are the real "+
  "constellations the ecliptic crosses, not the twelve equal signs. The outer ring reads heliocentric "+
- "longitude, which is not the same as where you would see the body from Earth; use the panel for that. "+
+ "longitude, which is not the same as where you would see the body from Earth; use the panel for that.",
  "<b>Retrograde charts</b> plot the true geocentric direction to the body over the retrograde episode "+
  "nearest the date shown, with north up and longitude increasing to the left as it does in the sky; the "+
  "stationary points and durations follow from the same ephemeris as everything else. Where a loop is very "+
- "flat the latitude axis is stretched, and the caption says by how much. <b>Star charts</b> show principal "+
- "pattern stars only, at J2000 positions, projected on a tangent plane about the constellation's centre — "+
- "enough to recognise a shape in the sky, not a substitute for a real atlas. Rising, setting and altitude "+
- "assume 51.5°N, roughly southern England — from the southern hemisphere the same patterns appear "+
- "upside down, and the circumpolar and never-rises notes swap over. <b>The Moon</b> uses an abridged "+
- "lunar theory accurate to roughly a third of a degree: fine for phase, age and constellation, not for "+
- "predicting eclipses — it now carries the main perturbation terms and lands the principal phases "+
+ "flat the latitude axis is stretched, and the caption says by how much.",
+ "<b>Star charts</b> show principal "+
+ "pattern stars only, at J2000 positions, projected on a tangent plane about the constellation's centre. "+
+ "That is enough to recognise a shape in the sky, and no substitute for a real atlas. Rising, setting and altitude "+
+ "assume 51.5°N, roughly southern England. From the southern hemisphere the same patterns appear "+
+ "upside down, and the circumpolar and never-rises notes swap over.",
+ "<b>The Moon</b> uses an abridged "+
+ "lunar theory accurate to roughly a third of a degree, which is fine for phase, age and constellation but not for "+
+ "predicting eclipses. It carries the main perturbation terms and lands the principal phases "+
  "within about half an hour, which is ample for a calendar. Oppositions, conjunctions and greatest "+
- "elongations are found by scanning the elongation curve, so they are good to a day or so. "+
- "<b>Eclipse data is not computed here</b> — paths of totality need a full lunar theory and Besselian "+
+ "elongations are found by scanning the elongation curve, so they are good to a day or so.",
+ "<b>Eclipse data is not computed here.</b> Paths of totality need a full lunar theory and Besselian "+
  "elements, so those entries are published figures from eclipse catalogues and the Royal Observatory, "+
- "credited as such rather than dressed up as model output.";
+ "credited as such rather than dressed up as model output."
+].map(t=>"<p>"+t+"</p>").join("");
 })();
 </script>
 </body>

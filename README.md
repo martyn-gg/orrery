@@ -18,7 +18,7 @@ pasted in as textures.
 
 - Real positions for any date from JPL's *Keplerian Elements for Approximate Positions of the
   Major Planets*, valid roughly 1800–2050 and good to a few arcminutes
-- True ellipses — real eccentricity, perihelion direction and inclination — with positions from
+- True ellipses, with real eccentricity, perihelion direction and inclination, and positions from
   solving Kepler's equation, so the sweep rate is genuinely non-uniform
 - A tilt control that lifts the ecliptic into three dimensions: Pluto's 17° orbit visibly rides
   above Neptune's, the Kuiper Belt becomes a torus, Halley runs retrograde at 162°
@@ -33,7 +33,7 @@ pasted in as textures.
 
 - Where each body is in tonight's sky: constellation, elongation from the Sun, morning or evening
   object, apparent size in arcseconds
-- Retrograde charts — the apparent path against the stars over the loop nearest your date, with
+- Retrograde charts: the apparent path against the stars over the loop nearest your date, with
   stationary points and dates
 - Star charts for 32 constellations with named asterisms (the Plough, the Sickle, the Teapot,
   the Southern Cross…), the ecliptic drawn through, and live planet positions plotted on them
@@ -45,7 +45,7 @@ pasted in as textures.
 
 ## Running it
 
-**Just open it.** `index.html` is completely self-contained — double-click it on Windows, macOS
+**Just open it.** `index.html` is completely self-contained. Double-click it on Windows, macOS
 or Linux and it works offline, forever. Nothing is fetched, nothing is tracked, no dependencies.
 
 **Install it as an app.** When served over HTTP(S) it registers as a progressive web app, so
@@ -87,11 +87,11 @@ and a full lunar theory; the abridged theory driving the phase calendar is nowhe
 enough. Those entries are published figures, credited in [DATA-SOURCES.md](DATA-SOURCES.md),
 rather than model output dressed up as prediction.
 
-**Known limits**, all stated in the page footer too:
+**Known limits**, all stated in the notes at the foot of the page too:
 
 - Planetary perturbations are ignored, so wind the clock centuries away and the outer planets
   drift from reality
-- Ceres, Haumea, Makemake, Eris and the comets use fixed osculating elements with a mean motion —
+- Ceres, Haumea, Makemake, Eris and the comets use fixed osculating elements with a mean motion,
   good to a fraction of a degree in this era, not survey grade
 - The lunar theory carries the main perturbation terms and lands the principal phases within
   about half an hour
@@ -104,7 +104,7 @@ rather than model output dressed up as prediction.
 The ephemeris was checked against published sky guides rather than assumed correct. For
 12 August 2026 the model independently places Mars on the Taurus–Gemini border, Uranus beside the
 Pleiades, Mercury and Jupiter low in Cancer, Saturn and Neptune in Pisces, all as pre-dawn
-objects with Venus alone in the evening sky — matching the published guide on every planet.
+objects with Venus alone in the evening sky, matching the published guide on every planet.
 Saturn's opposition comes out as 4 October 2026 and Mars's as 19 February 2027; Halley sits at
 0.587 AU at its 1986 perihelion, its true perihelion distance; and new moon falls on
 12 August 2026, the date of the total solar eclipse over Iceland and Spain.
@@ -117,8 +117,8 @@ Any current version of Chrome, Edge, Firefox or Safari, on desktop or mobile. It
 ## Licence
 
 Code and prose: [MIT](LICENSE). Astronomical data is factual and not subject to copyright, but the
-sources deserve credit — see [DATA-SOURCES.md](DATA-SOURCES.md).
+sources deserve credit; see [DATA-SOURCES.md](DATA-SOURCES.md).
 
 ## Author
 
-Martyn Greville-Giddings — [@martyn-gg](https://github.com/martyn-gg)
+Martyn Greville-Giddings, [@martyn-gg](https://github.com/martyn-gg). More at <https://martyn-gg.github.io/>.

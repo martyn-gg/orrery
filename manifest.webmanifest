@@ -1,5 +1,5 @@
 {
-  "name": "Orrery — the solar system in three dimensions",
+  "name": "Orrery: the solar system in three dimensions",
   "short_name": "Orrery",
   "description": "Real planetary positions from JPL elements, three-dimensional orbits, moons, comets, retrograde loops, star charts, moon phases and eclipses.",
   "start_url": "./",
