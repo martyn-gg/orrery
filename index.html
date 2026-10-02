@@ -581,7 +581,10 @@ function proj(x,y,z,r){
   const k=r>1e-9?Rf(r)/r:0;
   const X=x*k, Y=y*k, Z=z*k;
   const ct=Math.cos(tiltDeg*D2R), st=Math.sin(tiltDeg*D2R);
-  return [CX+X, CY+Y*ct-Z*st, Y*st+Z*ct];   // [sx, sy, depth: + = further]
+  /* seen from the north side of the ecliptic, tilted towards the viewer:
+     +Y runs up the screen, so the planets travel anticlockwise as they do
+     from the north, and +Z (north) still lifts towards the top */
+  return [CX+X, CY-Y*ct-Z*st, Y*st-Z*ct];   // [sx, sy, depth: + = further]
 }
 
 /* ================= procedural surfaces ============================== */
@@ -922,7 +925,7 @@ function beltBasis(br){
   const co=Math.cos(br.node),so=Math.sin(br.node),ci=Math.cos(br.inc),si=Math.sin(br.inc);
   const c1=[co,so,0], c2=[-so*ci,co*ci,si];
   const k=Rf(br.au), ct=Math.cos(tiltDeg*D2R), st=Math.sin(tiltDeg*D2R);  // unit basis
-  const P=v=>[v[0]*k, v[1]*k*ct-v[2]*k*st];
+  const P=v=>[v[0]*k, -v[1]*k*ct-v[2]*k*st];
   br.A=P(c1); br.B=P(c2);
   const det=br.A[0]*br.B[1]-br.A[1]*br.B[0];
   br.inv=Math.abs(det)<1e-9?null:[br.B[1]/det,-br.B[0]/det,-br.A[1]/det,br.A[0]/det];
@@ -1468,7 +1471,7 @@ const zodiac=mk("g",{}); svg.appendChild(zodiac);
 const zodLabels=[];
 function flat(px,py,pz){
   const ct=Math.cos(tiltDeg*D2R), st=Math.sin(tiltDeg*D2R);
-  return [CX+px, CY+py*ct-pz*st];
+  return [CX+px, CY-py*ct-pz*st];
 }
 function buildZodiac(){
   while(zodiac.firstChild) zodiac.removeChild(zodiac.firstChild);
@@ -1616,6 +1619,12 @@ let labelsOn=true;
 function placeLabels(){
   if(!labelsOn) return;
   const k=textK(), h=11.5*k, placed=[];
+  /* the belt names are fixed, so planet labels have to keep clear of them */
+  if(beltLabels.style.display!=="none") BELTS.forEach(B=>{
+    if(!B.labW){ const L=B.lab.getComputedTextLength(); if(L>0) B.labW=L; }
+    const w=(B.labW||B.n.length*6.4)*k;
+    if(B.lx!==undefined) placed.push([B.lx-w/2,B.ly-3*k-h*0.8,w,h]);
+  });
   const live=nodes.filter(nd=>nd.pos&&nd.g.style.display!=="none");
   const hitsBody=(bx,self)=>live.some(o=>{
     if(o===self) return false;
@@ -2438,7 +2447,7 @@ function relayout(){
   });
   beltRings.forEach(beltBasis);
   BELTS.forEach(B=>{
-    const p=proj(0,-(B.i+B.o)/2,0,(B.i+B.o)/2);
+    const p=proj(0,(B.i+B.o)/2,0,(B.i+B.o)/2);
     B.lx=p[0]; B.ly=p[1];
     B.lab.setAttribute("x",0); B.lab.setAttribute("y",0);
   });
@@ -2763,12 +2772,12 @@ function frame(now){
   moonSats.forEach(m=>{
     const th=m.ph+(m.retro?-1:1)*2*Math.PI*T/m.P;
     m.g.setAttribute("transform","translate("+(m.r*Math.cos(th)).toFixed(2)+
-      ","+(m.r*Math.sin(th)).toFixed(2)+")");});
+      ","+(-m.r*Math.sin(th)).toFixed(2)+")");});   /* minus: anticlockwise on screen */
   if(frameN%2===0) beltRings.forEach(br=>beltSpin(br,T));
   moonAnim.forEach(m=>{
     const th=m.ph+(m.retro?-1:1)*2*Math.PI*(wall/3)*(m.k/m.P);
     m.g.setAttribute("transform","translate("+(140+m.r*Math.cos(th)).toFixed(2)+
-      ","+(140+m.r*Math.sin(th)).toFixed(2)+")");});
+      ","+(140-m.r*Math.sin(th)).toFixed(2)+")");});
 
   if(portraitBody&&frameN%2===0){
     const rt=portraitBody.rot||24;
@@ -2845,7 +2854,8 @@ document.getElementById("foot").innerHTML=[
  "Ceres, Haumea, Makemake, Eris and the two comets use fixed osculating elements with a mean motion, which is "+
  "good to a fraction of a degree over this era. Perturbations between planets are ignored "+
  "entirely, so run the clock far enough and the outer planets will drift from reality.",
- "<b>Geometry.</b> Inclinations and nodes are real, so the tilt control shows the true three-dimensional "+
+ "<b>Geometry.</b> The view is from the north side of the ecliptic, so the planets travel "+
+ "anticlockwise. Inclinations and nodes are real, so the tilt control shows the true three-dimensional "+
  "arrangement. Only in <i>true</i> scale is each drawn curve a geometrically exact ellipse with the Sun at a "+
  "focus; the compressed and square-root scales bend the radius to fit everything on one page, which flattens the "+
  "ellipses but keeps the ordering and the crossings honest. Planet sizes are not to scale in any mode; the "+
