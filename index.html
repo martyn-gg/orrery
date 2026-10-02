@@ -2011,11 +2011,26 @@ function nightPlan(t){
 /* ---------- what is coming up -------------------------------------- */
 const wrap180=d=>((d%360)+540)%360-180;
 let upcomingCache={key:null,list:[]};
+const lamSun=t=>{const e=vec(BODIES[2],t); return Math.atan2(-e.y,-e.x)*R2D;};
+/* every time f(t), an angle in degrees, passes through zero going either
+   way between t0 and t1, ignoring the jump where it wraps at ±180 */
+function crossings0(f,t0,t1,step){
+  const out=[]; let prev=f(t0);
+  for(let t=t0+step;t<=t1;t+=step){
+    const cur=f(t);
+    if((prev<0)!==(cur<0)&&Math.abs(cur-prev)<90){
+      let a=t-step,c=t,fa=prev;
+      for(let k=0;k<30;k++){const m=(a+c)/2,fm=f(m); if((fa<0)===(fm<0)){a=m;fa=fm;}else c=m;}
+      out.push((a+c)/2);
+    }
+    prev=cur;
+  }
+  return out;
+}
 function upcoming(t0,days){
   const key=Math.floor(t0)+"|"+days;
   if(upcomingCache.key===key) return upcomingCache.list;
   const ev=[], five=["Mercury","Venus","Mars","Jupiter","Saturn"].map(n=>BODIES.find(b=>b.n===n));
-  const lamSun=t=>{const e=vec(BODIES[2],t); return Math.atan2(-e.y,-e.x)*R2D;};
   five.forEach(b=>{
     let from=t0;
     for(let k=0;k<3;k++){
@@ -2028,35 +2043,35 @@ function upcoming(t0,days){
       from=x.t+5;
     }
   });
-  /* the Moon passing a planet: geocentric longitudes equal */
-  five.forEach(b=>{
-    const f=t=>wrap180(moon(t).lam-geo(b,t).lam);
-    let prev=f(t0);
-    for(let t=t0+0.25;t<=t0+days;t+=0.25){
-      const cur=f(t);
-      if(prev<0&&cur>=0&&cur-prev<90){
-        let a=t-0.25,c=t; for(let k=0;k<24;k++){const m=(a+c)/2; if(f(m)<0)a=m; else c=m;}
-        const tt=(a+c)/2, sep=moon(tt).bet-geo(b,tt).bet, el=elong(b,tt).a;
-        if(Math.abs(sep)<5&&el>15) ev.push({t:tt,body:b.n,txt:"The Moon passes "+Math.abs(sep).toFixed(1)+"° "+
-          (sep>0?"north":"south")+" of "+b.n});
-      }
-      prev=cur;
-    }
+  /* Venus or Mercury passing between the Earth and the Sun: equal
+     ecliptic longitude, the convention published tables use */
+  const sunD=t=>{const e=vec(BODIES[2],t); return Math.hypot(e.x,e.y,e.z);};
+  five.filter(b=>b.a<1).forEach(b=>{
+    const f=t=>wrap180(geo(b,t).lam-lamSun(t));
+    crossings0(f,t0,t0+days,0.5).forEach(tt=>{
+      const g=geo(b,tt); if(g.D>sunD(tt)) return;          /* the far side of the Sun */
+      const sep=elong(b,tt).a, side=g.bet>0?"north":"south";
+      ev.push({t:tt,body:b.n,txt:sep<0.27?
+        b.n+" crosses the face of the Sun (a transit) as it passes between the Earth and the Sun":
+        b.n+" passes between the Earth and the Sun, "+sep.toFixed(1)+"° "+side+" of the Sun, and moves from "+
+        "the evening sky to the morning sky"});
+    });
   });
-  /* two planets passing: equal longitude and close in latitude */
+  /* conjunctions in right ascension, as almanacs give them, with the
+     separation in declination */
+  const pass=(A,B,step,lim,ok,say)=>{
+    crossings0(t=>wrap180(eqOf(A,t).ra-eqOf(B,t).ra),t0,t0+days,step).forEach(tt=>{
+      const sep=eqOf(A,tt).dec-eqOf(B,tt).dec;
+      if(Math.abs(sep)<lim&&ok(tt)) ev.push({t:tt,body:B==="Moon"?A:B,
+        txt:say(Math.abs(sep).toFixed(1)+"° "+(sep>0?"north":"south"))});
+    });
+  };
+  /* the Moon passing a planet */
+  five.forEach(b=>pass("Moon",b.n,0.25,5,tt=>elong(b,tt).a>15,s=>"The Moon passes "+s+" of "+b.n));
+  /* two planets passing */
   for(let i=0;i<five.length;i++) for(let j=i+1;j<five.length;j++){
-    const A=five[i],B=five[j], f=t=>wrap180(geo(A,t).lam-geo(B,t).lam);
-    let prev=f(t0);
-    for(let t=t0+1;t<=t0+days;t+=1){
-      const cur=f(t);
-      if((prev<0)!==(cur<0)&&Math.abs(cur-prev)<30){
-        let a=t-1,c=t,fa=prev; for(let k=0;k<24;k++){const m=(a+c)/2,fm=f(m); if((fa<0)===(fm<0)){a=m;fa=fm;}else c=m;}
-        const tt=(a+c)/2, sep=geo(A,tt).bet-geo(B,tt).bet;
-        if(Math.abs(sep)<3&&elong(A,tt).a>12&&elong(B,tt).a>12)
-          ev.push({t:tt,body:A.n,txt:A.n+" passes "+Math.abs(sep).toFixed(1)+"° "+(sep>0?"north":"south")+" of "+B.n});
-      }
-      prev=cur;
-    }
+    const A=five[i],B=five[j];
+    pass(A.n,B.n,1,6,tt=>elong(A,tt).a>12&&elong(B,tt).a>12,s=>A.n+" passes "+s+" of "+B.n);
   }
   ev.sort((a,b)=>a.t-b.t);
   upcomingCache={key,list:ev};
@@ -2114,7 +2129,7 @@ function nightHTML(){
       "for the planets and a few minutes for the Moon.</p>";
 }
 function eventsHTML(){
-  const ev=upcoming(T,180).slice(0,7);
+  const ev=upcoming(T,180).slice(0,10);
   if(!ev.length) return "";
   return "<div class='sub'>Coming up</div>"+ev.map(e=>
     "<div class='ecl evt' data-t='"+e.t+"'><b>"+fmtDate(e.t)+"</b><span class='where'>"+e.txt+
@@ -3244,7 +3259,10 @@ document.getElementById("foot").innerHTML=[
  "Eclipse prediction needs far more, so none is attempted. It carries the main perturbation terms and lands the principal phases "+
  "within about half an hour, which is ample for a calendar. Oppositions, conjunctions and greatest "+
  "elongations are the turning points of the elongation curve, found to the minute; they land within an "+
- "hour of published times for the outer planets' oppositions and on the right date for the rest.",
+ "hour of published times for the outer planets' oppositions and on the right date for the rest. "+
+ "In the Coming up list, Venus or Mercury passing between the Earth and the Sun is timed by equal "+
+ "ecliptic longitude, and the Moon or a planet passing a planet by equal right ascension, the "+
+ "conventions almanacs use.",
  "<b>Eclipse data is not computed here.</b> Paths of totality need a full lunar theory and Besselian "+
  "elements, so those entries are published figures from eclipse catalogues and the Royal Observatory, "+
  "credited as such."

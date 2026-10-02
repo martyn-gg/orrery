@@ -38,8 +38,9 @@ move by Kepler's second law, and the surfaces are rendered procedurally at load.
 - Rising, setting and best viewing times for the Moon and the five naked-eye planets, sunset,
   sunrise and the hours of darkness, for southern England, Sydney or a place you set (kept in your
   browser only)
-- Coming up: the next oppositions, greatest elongations, close passes of the Moon by a planet
-  and close pairs of planets, each one a tap away
+- Coming up: the next oppositions, greatest elongations, Venus or Mercury passing between the
+  Earth and the Sun (and the rare transits), close passes of the Moon by a planet and close
+  pairs of planets, each one a tap away
 - Retrograde charts: the apparent path against the stars over the loop nearest your date, with
   stationary points and dates
 - Star charts for 32 constellations with named asterisms (the Plough, the Sickle, the Teapot,
@@ -116,7 +117,9 @@ Saturn's opposition comes out as 4 October 2026 and Mars's as 19 February 2027; 
 
 Those checks, and others, are now a script. `tools/check.mjs` loads the page in headless
 Chromium and tests it against published figures: opposition, conjunction and elongation dates,
-a new moon, and rising and setting times for London on 2 October 2026 from timeanddate.com.
+a new moon, the Coming up list's timings for October and November 2026 from In-The-Sky.org,
+the 2032 transit of Mercury, and rising and setting times for London on 2 October 2026 from
+timeanddate.com.
 It also checks that the planets travel anticlockwise, that a link restores the view, that the
 date-range notice appears when it should, and that the page loads without errors at desktop
 and phone sizes. To run it:

@@ -76,6 +76,28 @@ ok("Venus greatest elongation 03/01/2027", isoOf(ev["Venus+"]).startsWith("2027-
 ok("Mars solar conjunction 21/03/2028", isoOf(ev["Mars-"]).startsWith("2028-03-21"), isoOf(ev["Mars-"]));
 ok("New moon 12/08/2026", isoOf(ev.newMoon).startsWith("2026-08-12"), isoOf(ev.newMoon));
 
+// 2b. The Coming up list against In-The-Sky.org (JPL DE440), times in UTC. Solar conjunctions
+// there are equal ecliptic longitude and the others equal right ascension, as the page does them.
+const up = await T(([a, b]) => {
+  const o = window.orreryTest;
+  return { y26: o.upcoming(a, 60).map(e => [e.t, e.txt]), y32: o.upcoming(b, 40).map(e => [e.t, e.txt]) };
+}, [days("2026-10-01T00:00:00Z"), days("2032-10-25T00:00:00Z")]);
+const find = (list, re) => list.find(e => re.test(e[1])) || [NaN, ""];
+for (const [re, iso, mins, sep, label] of [
+  [/^Venus passes between/, "2026-10-24T03:39:00Z", 30, "6.5° south", "Venus between the Earth and the Sun 24/10/2026 03:39"],
+  [/^Mercury passes between/, "2026-11-04T14:20:00Z", 30, "0.4° south", "Mercury between the Earth and the Sun 04/11/2026 14:20"],
+  [/^Mercury passes .* of Venus/, "2026-10-05T14:50:00Z", 30, "5.4° north", "Mercury and Venus 05/10/2026 14:50, 5°26'"],
+  [/^Mars passes .* of Jupiter/, "2026-11-15T02:42:00Z", 180, "1.2° north", "Mars and Jupiter 15/11/2026 02:42, 1°14'"],
+  [/^The Moon passes .* of Venus/, "2026-10-12T02:31:00Z", 60, "north", "the Moon and Venus 12/10/2026 02:31"]]) {
+  const [t, txt] = find(up.y26, re);
+  ok(`Coming up: ${label}`, Math.abs(t - days(iso)) * 1440 <= mins && txt.includes(sep),
+    isFinite(t) ? isoOf(t).slice(0, 16) + ", " + txt : "not listed");
+}
+{
+  const [t, txt] = find(up.y32, /^Mercury crosses the face of the Sun/);
+  ok("Coming up: transit of Mercury 13/11/2032", isFinite(t) && isoOf(t).startsWith("2032-11-13"), isFinite(t) ? isoOf(t).slice(0, 16) : "not listed");
+}
+
 // 3. Rise and set for London on 02/10/2026 against timeanddate.com (BST shown, compared in UTC).
 const rs = await T(([d0]) => {
   const o = window.orreryTest; o.setObserver(51.5072, -0.1276);
