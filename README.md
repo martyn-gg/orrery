@@ -7,7 +7,7 @@ Planetary positions are computed from JPL's Keplerian elements, so the planets a
 actually are on the date shown. Orbits carry their real eccentricities and inclinations, bodies
 move by Kepler's second law, and the surfaces are rendered procedurally at load.
 
-**[Live demo](https://martyn-gg.github.io/orrery/)**
+**[Live demo](https://greville-giddings.me/orrery/)**
 
 ![The orrery](screenshot.png)
 
@@ -68,7 +68,7 @@ under *Settings → Pages → Source → GitHub Actions*.
 **Embed it in a page.**
 
 ```html
-<iframe src="https://martyn-gg.github.io/orrery/"
+<iframe src="https://greville-giddings.me/orrery/"
         style="width:100%;aspect-ratio:16/10;border:0;border-radius:12px"
         title="Orrery" loading="lazy"></iframe>
 ```
@@ -117,4 +117,4 @@ sources deserve credit; see [DATA-SOURCES.md](DATA-SOURCES.md).
 
 ## Author
 
-Martyn Greville-Giddings, [@martyn-gg](https://github.com/martyn-gg). More at <https://martyn-gg.github.io/>.
+Martyn Greville-Giddings, [@martyn-gg](https://github.com/martyn-gg). More at <https://greville-giddings.me/>.
