@@ -25,7 +25,7 @@ pasted in as textures.
 - Three radial scales: compressed, square-root and true. Only *true* is geometrically exact;
   the others bend the radius to fit everything on one page
 - Asteroid and Kuiper belts as inclined tori with real differential rotation
-- 31 major moons orbiting their planets at true relative rates
+- 31 major moons at their true orbital periods, driven by the same clock as the planets
 - Comets Halley and Encke, with tails that grow as the inverse square of distance
 - Zoom, pan, follow-a-body, reverse time, jump to a date or to a historical event
 
